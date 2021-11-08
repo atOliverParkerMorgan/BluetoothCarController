@@ -17,7 +17,9 @@ AF_DCMotor motor4(4, MOTOR34_1KHZ);
 bool n = false;
 uint8_t c = FORWARD;
 
-char command; 
+int command;
+const int ROTATION_RATE = 1;
+int angle = 90;
 
 void setup() 
 {       
@@ -31,27 +33,21 @@ void loop(){
 //   debil();
 //  }
   if(Serial.available() > 0){ 
-    command = Serial.read(); 
+    command = Serial.read();
+    command -= 90;
     Stop();
-    switch(command){
-    case 'F':  
-      forward();
-      break;
-    case 'B':  
-       back();
-      break;
-    case 'L':  
+    Serial.println("COMMAND: "+command);
+    Serial.println("ANGLE: "+angle);
+    if(command<angle){
+      angle-=ROTATION_RATE;
       left();
-      break;
-    case 'R':
+    }else if(command<angle){
+      angle+=ROTATION_RATE;
       right();
-      break;
-    case '':
-      forwardRight();
-    case 'D':
-        debil();    
+    }else{
+      forward();
     }
-  } 
+  }
 //  debil();
 }
 void debil(){
@@ -133,7 +129,7 @@ void right()
   motor3.run(FORWARD); //rotate the motor anti-clockwise
   motor4.setSpeed(255); //Define maximum velocity
   motor4.run(BACKWARD); //rotate the motor anti-clockwise
-} 
+}
 
 void Stop(){
   motor1.setSpeed(0); //Define minimum velocity

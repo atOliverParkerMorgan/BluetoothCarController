@@ -12,7 +12,6 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.ImageButton;
 import android.widget.Toast;
 import com.example.bluetoothcarcontroller.Bluetooth.BluetoothActivity;
@@ -30,42 +29,25 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main_landscape);
+        setContentView(R.layout.activity_main);
 
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
         OutputStream outputStream = DeviceAdapter.getOutputStream();
 
-        // right joystick
-        JoystickView joystickLeft = findViewById(R.id.joystickLeft);
-        joystickLeft.setOnMoveListener((angle, strength) -> {
-
-            if(outputStream!=null){
-                try {
-                   // Toast.makeText(this,"R: angle: "+angle+" | strength: "+strength, Toast.LENGTH_SHORT ).show();
-                    Log.d("MOVING", "L: angle: "+angle+" | strength: "+strength);
-                    outputStream.write(("L"+strength).getBytes());
-                } catch (IOException e) {
-                    Toast.makeText(this,
-                            "Oops, something went wrong with the bluetooth connection.",
-                            Toast.LENGTH_LONG).show();
-                }
-            }
-
-        });
-
         // left joystick
-        JoystickView joystickRight = findViewById(R.id.joystickRight);
+        JoystickView joystickRight = findViewById(R.id.joystick);
         joystickRight.setOnMoveListener((angle, strength) -> {
             if(outputStream!=null){
-                try {
-                 //   Toast.makeText(this,"R: angle: "+angle+" | strength: "+strength, Toast.LENGTH_SHORT ).show();
-                    outputStream.write(("R"+angle).getBytes());
-                } catch (IOException e) {
-                    Toast.makeText(this,
-                            "Oops, something went wrong with the bluetooth connection.",
-                            Toast.LENGTH_LONG).show();
-                }
+                new Thread(()-> {
+                    try {
+                        outputStream.write(angle);
+                    } catch (IOException e) {
+                        Toast.makeText(this,
+                                "Oops, something went wrong with the bluetooth connection.",
+                                Toast.LENGTH_LONG).show();
+                    }
+                }).start();
             }
         });
 

@@ -17,25 +17,47 @@ int command;
 const int ROTATION_RATE = 1;
 int angle = 90;
 
-void setup() 
-{       
+// Create the motor shield object with the default I2C address
+Adafruit_MotorShield AFMS = Adafruit_MotorShield();
+
+Adafruit_StepperMotor *myStepper = AFMS.getStepper(200, 2);
+// We'll also test out the built in Arduino Servo library
+Servo servo1;
+// Select which 'port' M1, M2, M3 or M4. In this case, M1
+Adafruit_DCMotor *myMotor = AFMS.getMotor(1);
+// You can also make another motor on port M2
+Adafruit_DCMotor *myOtherMotor = AFMS.getMotor(2);
+
+void setup()
+{
   Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
   n = false;
   c = "FORWARD";
-  // Create the motor shield object with the default I2C address
-  Adafruit_MotorShield AFMS = Adafruit_MotorShield(); 
+  if (!AFMS.begin()) {         // create with the default frequency 1.6KHz
+  // if (!AFMS.begin(1000)) {  // OR with a different frequency, say 1KHz
+    Serial.println("Could not find Motor Shield. Check wiring.");
+    while (1);
+  }
 
-  // Select which 'port' M1, M2, M3 or M4. In this case, M1
-  Adafruit_DCMotor *myMotor = AFMS.getMotor(1);
-  // You can also make another motor on port M2
-  Adafruit_DCMotor *myOtherMotor = AFMS.getMotor(2);
+  Serial.println("Motor Shield found.");
+
+  // Attach a servo to pin #10
+  servo1.attach(10);
+
+  // turn on motor M1
+  myMotor->setSpeed(200);
+  myMotor->run(RELEASE);
+
+  // setup the stepper
+  myStepper->setSpeed(10);  // 10 rpm
 }
 
 void loop(){
+
 //  if(Serial.available() > 0){
 //   debil();
 //  }
-//  if(Serial.available() > 0){ 
+//  if(Serial.available() > 0){
 //    command = Serial.read();
 //    command -= 90;
 //    Stop();
@@ -65,7 +87,7 @@ void loop(){
 //delay(2000);
 //if(n){
 // n = false;
-// c = BACKWARD; 
+// c = BACKWARD;
 //}else{
 //  n = true;
 //  c = FORWARD;
@@ -96,7 +118,7 @@ void loop(){
 //  motor3.setSpeed(255);
 //  motor3.run(FORWARD);
 //  motor4.setSpeed(240);
-//  motor4.run(BACKWARD); 
+//  motor4.run(BACKWARD);
 //}
 //void back()
 //{

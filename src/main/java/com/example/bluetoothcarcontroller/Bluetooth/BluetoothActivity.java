@@ -76,12 +76,6 @@ public class BluetoothActivity extends Activity {
         deviceAdapter.notifyDataSetChanged();
     }
 
-    private void makeDiscoverable() {
-        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-        startActivity(discoverableIntent);
-    }
-
     private final BroadcastReceiver myReceiver = new BroadcastReceiver() {
 
         @Override

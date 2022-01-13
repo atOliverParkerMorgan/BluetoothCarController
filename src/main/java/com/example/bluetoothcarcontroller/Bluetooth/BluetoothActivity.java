@@ -1,6 +1,7 @@
 package com.example.bluetoothcarcontroller.Bluetooth;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
@@ -30,11 +31,12 @@ public class BluetoothActivity extends Activity {
 
 
     int REQUEST_ACCESS_COARSE_LOCATION = 1;
-    static BluetoothAdapter bluetoothAdapter = null;
+    BluetoothAdapter bluetoothAdapter;
 
     ArrayList<Device> devicesArrayList = new ArrayList<>();
     ListView devicesListView;
-    DeviceAdapter deviceAdapter;
+    @SuppressLint("StaticFieldLeak")
+    public DeviceAdapter deviceAdapter;
     TextView searching;
     ProgressBar searchProgressbar;
     ImageButton backButton;
@@ -69,7 +71,7 @@ public class BluetoothActivity extends Activity {
 
     }
 
-    private void getPairedDevices() {
+    public void getPairedDevices() {
         Set<BluetoothDevice> pairedDevice = bluetoothAdapter.getBondedDevices();
         for (BluetoothDevice bd: pairedDevice)
             devicesArrayList.add(new Device(bd, true, bd.getName().equals("HC-05")));

@@ -33,7 +33,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
 
     Context context;
     List<Device> devices;
-    private final UUID UUID = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
     static BluetoothDevice connectedDevice = null;
 
     private static OutputStream outputStream;
@@ -136,7 +136,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
         Thread t = new Thread(()-> {
 
             try {
-                bluetoothSocket = device.createRfcommSocketToServiceRecord(UUID);
+                bluetoothSocket = device.createRfcommSocketToServiceRecord(MainActivity.UUID);
                 bluetoothSocket.connect();
                 outputStream = bluetoothSocket.getOutputStream();
                 if(bluetoothSocket.isConnected()) {

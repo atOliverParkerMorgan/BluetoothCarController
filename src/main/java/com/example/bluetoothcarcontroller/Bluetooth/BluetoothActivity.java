@@ -108,7 +108,7 @@ public class BluetoothActivity extends Activity {
             }
             else if (BluetoothDevice.ACTION_ACL_CONNECTED.equals(action)) {
                 //Device is now connected
-                DeviceAdapter.connectedDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                MainActivity.connectedDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
             }
             else if (BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
                 searching.setText(R.string.nothingFound);

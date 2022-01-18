@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,14 +28,14 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+
 
 public class DeviceAdapter extends ArrayAdapter <Device > {
 
     Context context;
     List<Device> devices;
 
-    static BluetoothDevice connectedDevice = null;
+
 
     private static OutputStream outputStream;
     private static BluetoothSocket bluetoothSocket;
@@ -90,8 +91,9 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
 
                 if(!device.isHCO5()) {
                     notHC05();
+                }else {
+                    connect(device.getDevice(), finalViewHolder, finalConvertView);
                 }
-                connect(device.getDevice(), finalViewHolder, finalConvertView);
 
             });
 
@@ -110,13 +112,11 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
 
         viewHolder.deviceImage.setTag(position);
 
-        if(connectedDevice!=null&&bluetoothSocket!=null){
-            if(connectedDevice.getName().equals(device.getDevice().getName())&&bluetoothSocket.isConnected()) {
+        if(MainActivity.connectedDevice!=null&&bluetoothSocket!=null){
+            if(MainActivity.connectedDevice.getName().equals(device.getDevice().getName())&&bluetoothSocket.isConnected()) {
                 viewHolder.deviceImage.setBackgroundResource(R.drawable.ic_baseline_bluetooth_connected_24);
                 convertView.setBackgroundColor(ContextCompat.getColor(context, R.color.darker_grey));
                 viewHolder.deviceName.setTextColor(ContextCompat.getColor(context, R.color.purple_500));
-            }else if(bluetoothSocket.isConnected()){
-                connectedDevice = null;
             }else setDefaultView(viewHolder, convertView);
 
 
@@ -141,7 +141,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
                 outputStream = bluetoothSocket.getOutputStream();
                 if(bluetoothSocket.isConnected()) {
                     ((Activity) context).runOnUiThread(() -> {
-                        connectedDevice = device;
+                        MainActivity.connectedDevice = device;
                         viewHolder.deviceImage.setBackgroundResource(R.drawable.ic_baseline_bluetooth_connected_24);
                         finalConvertView.setBackgroundColor(ContextCompat.getColor(context, R.color.darker_grey));
                         viewHolder.deviceName.setTextColor(ContextCompat.getColor(context, R.color.purple_500));
@@ -167,14 +167,17 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
     }
 
     public void notHC05(){
-        MainActivity.showAlert(context, "Oops","The device you have chosen is not named HC-05. HC-05 is the bluetooth receiver that this app uses.");
+        MainActivity.showAlert(context, "Oops","The device you have chosen is not named HC-05. HC-05 is the bluetooth receiver that this app uses.", ()->{});
     }
 
     public void connectionError(){
 
-        ((Activity) context).runOnUiThread(()-> MainActivity.showAlert(context, "Oops","Failed to connect to device"));
+        ((Activity) context).runOnUiThread(()-> MainActivity.showAlert(context, "Oops","Failed to connect to device", ()->{}));
     }
     public void success(){
-        MainActivity.showAlert(context, "Success","You have successfully connected to the bluetooth device.");
+        MainActivity.showAlert(context, "Success","You have successfully connected to the bluetooth device.", ()->{
+            MainActivity.isConnectedToBluetoothReceiver = true;
+            context.startActivity(new Intent(context, MainActivity.class));
+        });
     }
 }

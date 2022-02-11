@@ -2,6 +2,7 @@
     <string name="app_name">BluetoothCarController</string>
     <string name="searching">searching…</string>
     <string name="connected">Connected</string>
+    <string name="notConnected">Not connected</string>
     <string name="nothingFound">nothing found</string>
     <string name="backButtonDescription">Go back to main activity</string>
 </resources>

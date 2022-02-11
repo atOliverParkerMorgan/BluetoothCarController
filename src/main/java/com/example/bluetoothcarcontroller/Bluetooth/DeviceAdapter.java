@@ -113,7 +113,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
         viewHolder.deviceImage.setTag(position);
 
         if(MainActivity.connectedDevice!=null&&bluetoothSocket!=null){
-            if(MainActivity.connectedDevice.getName().equals(device.getDevice().getName())&&bluetoothSocket.isConnected()) {
+            if(MainActivity.connectedDevice.getName().equals(device.getDevice().getName()) && MainActivity.isConnectedToBluetoothReceiver && bluetoothSocket.isConnected()) {
                 viewHolder.deviceImage.setBackgroundResource(R.drawable.ic_baseline_bluetooth_connected_24);
                 convertView.setBackgroundColor(ContextCompat.getColor(context, R.color.darker_grey));
                 viewHolder.deviceName.setTextColor(ContextCompat.getColor(context, R.color.purple_500));

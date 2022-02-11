@@ -7,12 +7,14 @@ import android.companion.CompanionDeviceManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -30,9 +32,33 @@ import io.github.controlwear.virtual.joystick.android.JoystickView;
 public class MainActivity extends AppCompatActivity {
     public static final java.util.UUID UUID = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     int SELECT_DEVICE_REQUEST_CODE = -1;
+    private static boolean isSensorOn = false;
+    private static boolean isSearchingAutomatic = false;
     public static boolean isConnectedToBluetoothReceiver = false;
     public static BluetoothDevice connectedDevice = null;
 
+    private final int MAX_STRENGTH = 255;
+    private final int MIN_STRENGTH = 125;
+
+    private final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        TextView connected = findViewById(R.id.connected);
+        TextView notConnected = findViewById(R.id.notConnected);
+        isConnectedToBluetoothReceiver = isConnected();
+        connected.setVisibility(isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
+        notConnected.setVisibility(!isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
+
+        ImageButton sensor = findViewById(R.id.sensor_button);
+        if(isSensorOn){
+            sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_24));
+        }else{
+            sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_off_24));
+        }
+    }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -40,56 +66,104 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        ImageButton sensor = findViewById(R.id.sensor_button);
+        ImageButton pair = findViewById(R.id.bluetooth_button);
+        ImageButton automatic = findViewById(R.id.autoamtic_button);
+
+        Handler mainHandler = new Handler(this.getMainLooper());
+
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+
+        isConnectedToBluetoothReceiver = isConnected();
 
         OutputStream outputStream = DeviceAdapter.getOutputStream();
 
         TextView connected = findViewById(R.id.connected);
+        TextView notConnected = findViewById(R.id.notConnected);
+
         connected.setVisibility(isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
+        notConnected.setVisibility(!isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
+
+        if(isSensorOn){
+            sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_24));
+        }else{
+            sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_off_24));
+        }
 
         // left joystick
         JoystickView joystickRight = findViewById(R.id.joystick);
         joystickRight.setOnMoveListener((angle, strength) -> {
+            Log.d("Angle: ", String.valueOf(angle));
 
             if(outputStream!=null){
                 try {
                     new Thread(() -> {
 
                         try {
-                            StringBuilder output = new StringBuilder("a" + (angle + 90) + "s" + strength);
-                            if(output.length()>10){
-                                Toast.makeText(this,
-                                        "Error, something went wrong with wrong.",
-                                        Toast.LENGTH_LONG).show();
+
+                            String output = "S";
+                            if(strength<=10){
+                                output = "S";
+                            }else if(angle>75 && angle < 115){
+                                output = "F";
+                            }else if(angle>255 && angle < 295) {
+                                output = "B";
+                            }else if(angle < 80 || angle > 290){
+                                output = "R";
+                            }else if(angle > 80 || angle < 260){
+                                output = "L";
                             }
-                            while(output.length()<10) {
-                                output.append("!");
+                            if(isSensorOn) output+="E";
+                            else output+="N";
+                            if(isSearchingAutomatic)output+="A";
+                            else output+="N";
+
+                            int strengthOutput = (int)(strength * ONE_PERCENT_OF_STRENGTH + MIN_STRENGTH) ;
+                            StringBuilder strengthStringOutput = new StringBuilder(Integer.toString(strengthOutput));
+
+                            while (strengthStringOutput.length()<3){
+                                strengthStringOutput.append("X");
                             }
 
-                            outputStream.write(output.toString().getBytes());
-
+                            output+=strengthStringOutput;
+                            Log.d("OUTPUT: ", output);
+                            outputStream.write(output.getBytes());
 
                         } catch (IOException e) {
-                            Toast.makeText(this,
-                                    "Oops, something went wrong with the bluetooth connection.",
-                                    Toast.LENGTH_LONG).show();
                             isConnectedToBluetoothReceiver = false;
+                            mainHandler.post(()->{
+                                connected.setVisibility(View.INVISIBLE);
+                                notConnected.setVisibility(View.VISIBLE);
+                            });
+
                         }
 
                     }).start();
                 }catch (Exception e) {
-                    Toast.makeText(this,
-                            "Oops, something went wrong with the bluetooth connection.",
-                            Toast.LENGTH_LONG).show();
                     isConnectedToBluetoothReceiver = false;
+                    mainHandler.post(()->{
+                        connected.setVisibility(View.INVISIBLE);
+                        notConnected.setVisibility(View.VISIBLE);
+                    });
 
                 }
             }
         });
 
-        ImageButton pair = findViewById(R.id.bluetooth_button);
         pair.setOnClickListener(view -> startActivity(new Intent(this, BluetoothActivity.class)));
-
+        sensor.setOnClickListener(view -> {
+           // sensor.setImageDrawable(R.drawable.);
+            isSensorOn = !isSensorOn;
+            if(isSensorOn){
+                sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_24));
+            }else{
+                sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_off_24));
+            }
+        });
+        automatic.setOnClickListener(view -> {
+           // automatic.setImageDrawable(R.drawable.);
+            isSearchingAutomatic = !isSearchingAutomatic;
+        });
 
     }
     @Override
@@ -126,6 +200,17 @@ public class MainActivity extends AppCompatActivity {
         });
 
         alert.show();
+    }
+
+    public static boolean isConnected(){
+        try {
+            OutputStream outputStream = DeviceAdapter.getOutputStream();
+            outputStream.write("test".getBytes());
+
+            return true;
+        }catch (Exception e){
+            return false;
+        }
     }
 
 }

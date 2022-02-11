@@ -1,22 +1,18 @@
 #include <AFMotor.h>
 
 #define PI 3.14159265
-#define unit 0.01;
-
 
 AF_DCMotor motor1(1, MOTOR12_64KHZ);
 AF_DCMotor motor2(2, MOTOR12_64KHZ);
 AF_DCMotor motor3(3, MOTOR12_64KHZ);
 AF_DCMotor motor4(4, MOTOR12_64KHZ);
-String input = "";
-int strength = 0;
 
-// angles are mesured in cosinus value 
-// 1 - right 
-// -1 - left
-float angle = 0;
-float currentAngle = PI/2;
-char readData[10]="0000000000";
+char readData[1]= "0";
+boolean Stop = true;
+int checkConnected = 0;
+char data = 'S';
+boolean isSensorOn = false;
+boolean isAutomtic = false;
 
 // commands
 // S - stop
@@ -25,79 +21,70 @@ char readData[10]="0000000000";
 // L - left
 // R - right
 
-char currentCommand = 'S';
+// ultrasonic Sensor
+const int echoPin = 2;
+const int trigPin = 3;
 
 void setup(){
     Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
-   
-    Serial.println("HERE");
-    setMotorStrength(100);
+    setMotorStrength(225);
+    Serial.println("INITIALIZING CAR");
+
+    pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+    pinMode(echoPin, INPUT); // Sets the echoPin as an Input
 }
 
 void loop(){
   if(Serial.available() > 0){
-     Serial.readBytes(readData, 10);
-     
-     String data = String(readData);
-     int indexOfS = data.indexOf('s');
-     angle = ( PI / 180.0 ) * data.substring(1, indexOfS).toInt();
-     strength = data.substring(indexOfS+1, data.indexOf('!')).toInt();
-     //Serial.println(strength);
+     checkConnected = 0;
+     Serial.readBytes(readData, 6);
+     data = readData[0];
+
+     char e = readData[1];
+     char a = readData[2];
+     isSensorOn = e == 'E';
+     Serial.println(isSensorOn);
+     int firstDigit = readData[3] - '0';;
+     char secondDigit = readData[4] - '0';
+     char thirdDigit = readData[5] - '0';
+     Serial.println(String(readData[3]));
+    Serial.println(String(firstDigit));
+     int strength = firstDigit * 100 + secondDigit * 10 + thirdDigit;
+     Serial.println(String(strength));
+     isAutomtic = a == 'A';
+
+
+  }else if (checkConnected<=255){
+     checkConnected++;
+  }
+
+  if(checkConnected > 255){
+      data = 'S';
+  }
+  if(isSensorOn){
+    if(caculateDistanance() <= 5){
+      data = 'S';
     }
-
-  if(strength == 0){
-      currentCommand = 'S';  
   }
-  else if(angle-currentAngle>0.02 ){
-     
-    Serial.println(currentAngle);
-       currentCommand = 'L';
-       currentAngle+=unit;
-       if(currentAngle>2*PI){
-          currentAngle = 0;
-       }
-  }else if(currentAngle-angle>0.02){
-    
-    Serial.println(currentAngle);
-    currentCommand = 'R';
-    currentAngle-=unit;
-     if(currentAngle<0){
-          currentAngle = 2*PI;
-     }
 
-  }else{
-    currentCommand = 'F';
-  }
-  
-//  }else if(angle>currentAngle and strength>10){
-//     Serial.println("RIGHTHHH");
-//     currentCommand = 'R';
-//     currentAngle+=0.01; 
-//      
-//  }else if(strength > 10){
-//     currentCommand = 'F';
-//  }else{
-//     currentCommand = 'S';
-//  }
- 
-    
-     
- 
-
-  switch (currentCommand){
+  switch (data){
     case 'F':
       goForward();
       break;
     case 'L':
-      goLeft();
-      break;
-    case 'R':
       goRight();
       break;
+    case 'R':
+      goLeft();
+      break;
     case 'S':
-      Stop();
+      doStop();
+      break;
+    case 'B':
+      goBack();
       break;
   }
+
 }
 
 void setMotorStrength(int s){
@@ -107,29 +94,54 @@ void setMotorStrength(int s){
   motor4.setSpeed(s);
 
 }
-void Stop(){
+void doStop(){
   motor1.run(RELEASE);
   motor2.run(RELEASE);
   motor3.run(RELEASE);
   motor4.run(RELEASE);
 }
 
-void goForward(){
+void goBack(){
   motor1.run(BACKWARD);
   motor2.run(BACKWARD);
   motor3.run(BACKWARD);
   motor4.run(BACKWARD);
 }
 
+void goForward(){
+  motor1.run(FORWARD);
+  motor2.run(FORWARD);
+  motor3.run(FORWARD);
+  motor4.run(FORWARD);
+}
+
 void goRight(){
-  motor1.run(FORWARD); //rotate the motor anti-clockwise
-  motor2.run(BACKWARD); //rotate the motor anti-clockwise
-  motor3.run(BACKWARD);  //rotate the motor clockwise
-  motor4.run(FORWARD);  //rota  
+  motor1.run(FORWARD);
+  motor2.run(BACKWARD);
+  motor3.run(FORWARD);
+  motor4.run(BACKWARD);
 }
 void goLeft(){
-  motor1.run(BACKWARD); //rotate the motor anti-clockwise
-  motor2.run(FORWARD); //rotate the motor anti-clockwise
-  motor3.run(FORWARD);  //rotate the motor clockwise
-  motor4.run(BACKWARD);  //rota  
+  motor1.run(BACKWARD);
+  motor2.run(FORWARD);
+  motor3.run(BACKWARD);
+  motor4.run(FORWARD);
+}
+
+int caculateDistanance(){
+  // resets the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(1l);
+
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  // Reads the echoPin, returns the  sound wave travel time in microseconds
+  long duration = pulseIn(echoPin, HIGH);
+
+  // Calculating the distance
+  return duration*0.034/2;
+
 }

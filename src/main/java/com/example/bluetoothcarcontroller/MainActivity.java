@@ -1,5 +1,6 @@
 package com.example.bluetoothcarcontroller;
 
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothDevice;
@@ -7,7 +8,6 @@ import android.companion.CompanionDeviceManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.res.Resources;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -19,6 +19,7 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.example.bluetoothcarcontroller.Bluetooth.BluetoothActivity;
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
@@ -38,10 +39,9 @@ public class MainActivity extends AppCompatActivity {
     public static BluetoothDevice connectedDevice = null;
 
     private final int MAX_STRENGTH = 255;
-    private final int MIN_STRENGTH = 125;
+    private final int MIN_STRENGTH = 0;
 
     private final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
-
 
     @Override
     protected void onResume() {
@@ -54,9 +54,9 @@ public class MainActivity extends AppCompatActivity {
 
         ImageButton sensor = findViewById(R.id.sensor_button);
         if(isSensorOn){
-            sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_24));
+            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_24));
         }else{
-            sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_off_24));
+            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_off_24));
         }
     }
 
@@ -85,49 +85,66 @@ public class MainActivity extends AppCompatActivity {
         notConnected.setVisibility(!isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
 
         if(isSensorOn){
-            sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_24));
+            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_24));
         }else{
-            sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_off_24));
+            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_off_24));
         }
 
         // left joystick
         JoystickView joystickRight = findViewById(R.id.joystick);
         joystickRight.setOnMoveListener((angle, strength) -> {
-            Log.d("Angle: ", String.valueOf(angle));
+           // Log.d("Angle: ", String.valueOf(angle));
 
             if(outputStream!=null){
                 try {
                     new Thread(() -> {
 
                         try {
+                            int normalizedStrength = (int) (strength * ONE_PERCENT_OF_STRENGTH);
 
-                            String output = "S";
-                            if(strength<=10){
-                                output = "S";
+                            StringBuilder output = new StringBuilder();
+                            if(isSensorOn) output.append("E");
+                            else output.append("N");
+                            if(isSearchingAutomatic) output.append("A");
+                            else output.append("N");
+                            StringBuilder strengthString = new StringBuilder(String.valueOf(normalizedStrength));
+                            while (strengthString.length()<3){
+                                strengthString.append("X");
+                            }
+                            if(strength<5){
+                                for (int i = 0; i < 4; i++) {
+                                    output.append("S").append("XXX");
+                                }
+
                             }else if(angle>75 && angle < 115){
-                                output = "F";
+                                for (int i = 0; i < 4; i++) {
+                                    output.append("F").append(strengthString);
+                                }
+
                             }else if(angle>255 && angle < 295) {
-                                output = "B";
-                            }else if(angle < 80 || angle > 290){
-                                output = "R";
-                            }else if(angle > 80 || angle < 260){
-                                output = "L";
+                                for (int i = 0; i < 4; i++) {
+                                    output.append("B").append(strengthString);
+                                }
+                            }else {
+                                char dir = normalizedStrength <= MAX_STRENGTH/2 ? 'B': 'F';
+                                int fixedStrength = normalizedStrength < MAX_STRENGTH / 2 ? MAX_STRENGTH - normalizedStrength : normalizedStrength;
+                                if(dir == 'F') fixedStrength -= 15*ONE_PERCENT_OF_STRENGTH;
+
+                                StringBuilder fixedStrengthString = new StringBuilder(String.valueOf((int)(fixedStrength)));
+                                while (fixedStrengthString.length()<3){
+                                    fixedStrengthString.append("X");
+                                }
+                                if(angle < 80 || angle > 290){
+                                    // right
+                                    output.append(dir).append(fixedStrengthString).append("F").append(MAX_STRENGTH).append(dir).append(fixedStrengthString).append("F").append(MAX_STRENGTH);
+                                }else if(angle > 80 || angle < 260){
+                                    //left
+                                    output.append("F").append(MAX_STRENGTH).append(dir).append(fixedStrengthString).append("F").append(MAX_STRENGTH).append(dir).append(fixedStrengthString);
+                                }
                             }
-                            if(isSensorOn) output+="E";
-                            else output+="N";
-                            if(isSearchingAutomatic)output+="A";
-                            else output+="N";
-
-                            int strengthOutput = (int)(strength * ONE_PERCENT_OF_STRENGTH + MIN_STRENGTH) ;
-                            StringBuilder strengthStringOutput = new StringBuilder(Integer.toString(strengthOutput));
-
-                            while (strengthStringOutput.length()<3){
-                                strengthStringOutput.append("X");
-                            }
-
-                            output+=strengthStringOutput;
-                            Log.d("OUTPUT: ", output);
-                            outputStream.write(output.getBytes());
+                            Log.d("OUTPUT: ", output.toString());
+                            Log.d("OUTPUT: ", String.valueOf(output.toString().length()));
+                            outputStream.write(output.toString().getBytes());
 
                         } catch (IOException e) {
                             isConnectedToBluetoothReceiver = false;
@@ -155,9 +172,9 @@ public class MainActivity extends AppCompatActivity {
            // sensor.setImageDrawable(R.drawable.);
             isSensorOn = !isSensorOn;
             if(isSensorOn){
-                sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_24));
+                sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_24));
             }else{
-                sensor.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_visibility_off_24));
+                sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_off_24));
             }
         });
         automatic.setOnClickListener(view -> {
@@ -205,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
     public static boolean isConnected(){
         try {
             OutputStream outputStream = DeviceAdapter.getOutputStream();
-            outputStream.write("test".getBytes());
+            outputStream.write("NNSXXXSXXXSXXXSXXX!".getBytes());
 
             return true;
         }catch (Exception e){

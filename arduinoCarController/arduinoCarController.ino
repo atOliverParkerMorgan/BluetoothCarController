@@ -8,11 +8,10 @@ AF_DCMotor motor3(3, MOTOR12_64KHZ);
 AF_DCMotor motor4(4, MOTOR12_64KHZ);
 
 
-const int BUFFER_SIZE = 18;
-int availableBitsInBuffer = -1;
+const int BUFFER_SIZE = 20;
 char buf[BUFFER_SIZE];
-int lastIndex = 0;
-char command[BUFFER_SIZE];
+int bufferIndex = 0;
+boolean foundStartOfMessage = false;
 
 
 boolean Stop = true;
@@ -44,80 +43,95 @@ void setup(){
 }
 
 void loop(){
-  availableBitsInBuffer = Serial.available();
-  
-  if(availableBitsInBuffer > 0){
-     checkConnected = 0;
-     Serial.readBytes(buf, availableBitsInBuffer);
+  while (Serial.available() > 0){
 
-     for(int i = 0; i < availableBitsInBuffer; i++){
-        command[lastIndex] = buf[i];
-        if(lastIndex==BUFFER_SIZE-1){
-           lastIndex = 0; 
-          
-           isSensorOn = command[0] == 'E';
-           isAutomtic = command[1] == 'A';
-           
-           motorDir1 = RELEASE;
-           if(command[2] == 'F'){
-              motorDir1 = FORWARD;
-           }else if(command[2] == 'B'){
-              motorDir1 = BACKWARD;
-           }
-           strengthMotor1 = getStrengthFromInput(command[3], command[4], command[5]);
-           
-           motorDir2 = RELEASE;
-           if(commandf[6] == 'F'){
-              motorDir2 = FORWARD;
-           }else if(command[6] == 'B'){
-              motorDir2 = BACKWARD;
-           }
-           strengthMotor2 = getStrengthFromInput(command[7], command[8], command[9]);
-           
-           motorDir3 = RELEASE;
-           if(command[10] == 'F'){
-              motorDir3 = FORWARD;
-           }else if(command[10] == 'B'){
-              motorDir3 = BACKWARD;
-           }
-           strengthMotor3 = getStrengthFromInput(command[11], command[12], command[13]);
-           
-           motorDir4 = RELEASE;
-           if(command[14] == 'F'){
-              motorDir4 = FORWARD;
-           }else if(command[14] == 'B'){
-              motorDir4 = BACKWARD;
-           }
-           strengthMotor4 = getStrengthFromInput(command[15], command[16], command[17]);
-           
-           for( int i = 0; i < BUFFER_SIZE; i++){
-                 Serial.print(String(command[i]));   
-           } 
-           Serial.println();
-           Serial.println("Sensor:"+ String(isSensorOn));
-           Serial.println("Automtic: "+String(isAutomtic));
-           Serial.println("motor1: "+String(strengthMotor1));
-           Serial.println("motor2: "+String(strengthMotor2));                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
-           Serial.println("motor3: "+String(strengthMotor3));
-           Serial.println("motor4: "+String(strengthMotor4));
-       }
-       lastIndex++;
+   checkConnected = 0; 
+
+   //Read the next available byte in the serial receive buffer
+   char inByte = Serial.read();
+
+   if(inByte=='<'){foundStartOfMessage=true;}
+
+   //Message coming in (check not terminating character) and guard for over message size
+   if ( inByte != '>' && (bufferIndex < BUFFER_SIZE - 1) && foundStartOfMessage)
+   {
+     //Add the incoming byte to our message
+     buf[bufferIndex] = inByte;
+     bufferIndex++;
+   }
+   //Full message received...
+   else if(foundStartOfMessage){
+     foundStartOfMessage = false;
+     buf[bufferIndex] = '/0';
+     //Add null character to string
+
+     //Print the message (or do other things)
+     Serial.println(buf);
+      
+     //Reset for the next message
+     bufferIndex = 0;
+
+     isSensorOn = buf[1] == 'E';
+     isAutomtic = buf[2] == 'A';
+     
+     motorDir1 = RELEASE;
+     if(buf[3] == 'F'){
+        motorDir1 = FORWARD;
+     }else if(buf[3] == 'B'){
+        motorDir1 = BACKWARD;
      }
+     strengthMotor1 = getStrengthFromInput(buf[4], buf[5], buf[6]);
+     
+     motorDir2 = RELEASE;
+     if(buf[7] == 'F'){
+        motorDir2 = FORWARD;
+     }else if(buf[7] == 'B'){
+        motorDir2 = BACKWARD;
+     }
+     strengthMotor2 = getStrengthFromInput(buf[8], buf[9], buf[10]);
+     
+     motorDir3 = RELEASE;
+     if(buf[11] == 'F'){
+        motorDir3 = FORWARD;
+     }else if(buf[11] == 'B'){
+        motorDir3 = BACKWARD;
+     }
+     strengthMotor3 = getStrengthFromInput(buf[12], buf[13], buf[14]);
+     
+     motorDir4 = RELEASE;
+     if(buf[15] == 'F'){
+        motorDir4 = FORWARD;
+     }else if(buf[15] == 'B'){
+        motorDir4 = BACKWARD;
+     }
+     strengthMotor4 = getStrengthFromInput(buf[16], buf[17], buf[18]);
+//     
+//     for( int i = 0; i < BUFFER_SIZE; i++){
+ //          Serial.print(String(buf[i]));   
+ //    } 
 
-    
 
-  }else if (checkConnected<=255){
+   }
+ }
+     
+     
+  if (checkConnected<=1000){
      checkConnected++;
   }
   
-  if(checkConnected > 255){
+  if(checkConnected > 1000){
       doStop();
   }else{
-
+  
      motor1.setSpeed(strengthMotor1);
      motor2.setSpeed(strengthMotor2);
      motor3.setSpeed(strengthMotor3);
      motor4.setSpeed(strengthMotor4);
+
+     Serial.println("motorDir1: "+String(motorDir1));
+     Serial.println("motorDir2: "+String(motorDir2));                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+     Serial.println("motorDir3: "+String(motorDir3));
+     Serial.println("motorDir4: "+String(motorDir4)); 
 
      motor1.run(motorDir1);
      motor2.run(motorDir2);

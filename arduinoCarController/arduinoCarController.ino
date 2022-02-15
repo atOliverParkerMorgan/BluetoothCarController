@@ -7,7 +7,7 @@ AF_DCMotor motor2(2, MOTOR12_64KHZ);
 AF_DCMotor motor3(3, MOTOR12_64KHZ);
 AF_DCMotor motor4(4, MOTOR12_64KHZ);
 
-
+String all = "";
 const int BUFFER_SIZE = 20;
 char buf[BUFFER_SIZE];
 int bufferIndex = 0;
@@ -60,11 +60,15 @@ void setup(){
 void loop(){
   while (Serial.available() > 0){ 
    //Read the next available byte in the serial receive buffer
+    
+   
    char inByte = Serial.read();
+   all+=String(inByte);
    
    if(inByte=='<'&&foundStartOfMessage){
     foundStartOfMessage=false;
-    Serial.println("Error: The message contains '<' at the wrong index ");
+    Serial.println("Error: The message contains '<' at the wrong index " + all);
+    all = "";
    }
 
    else if(inByte=='<'){
@@ -76,7 +80,7 @@ void loop(){
    }
   
    //Message coming in (check not terminating character) and guard for over message size
-   else if ( inByte != '>' && (bufferIndex < BUFFER_SIZE - 1) && foundStartOfMessage){
+   else if ( inByte != '>' && bufferIndex < BUFFER_SIZE && foundStartOfMessage){
      //Add the incoming byte to our message
      buf[bufferIndex] = inByte;
      bufferIndex++;
@@ -85,7 +89,7 @@ void loop(){
    //Full message received...
    else if(foundStartOfMessage){
      foundStartOfMessage = false;
-     buf[bufferIndex] = '/0';
+     buf[bufferIndex] = '>';
      //Add null character to string
 
      //Print the message (or do other things)
@@ -300,8 +304,9 @@ void saveValues(){
 }
 
 void setToSavedValues(){
-   Serial.println("Error: Invalid message, the wrong datais placed at the wrong index.");
-
+   Serial.println("Error: Invalid message, the wrong datais placed at the wrong index. "+all);
+   all="";
+    
    isSensorOn = isSensorOnCopy;
    isAutomtic = isAutomticCopy; 
     

@@ -7,12 +7,11 @@ AF_DCMotor motor2(2, MOTOR12_64KHZ);
 AF_DCMotor motor3(3, MOTOR12_64KHZ);
 AF_DCMotor motor4(4, MOTOR12_64KHZ);
 
-
-const int BUFFER_SIZE = 18;
-int availableBitsInBuffer = -1;
+String all = "";
+const int BUFFER_SIZE = 20;
 char buf[BUFFER_SIZE];
-int lastIndex = 0;
-char command[BUFFER_SIZE];
+int bufferIndex = 0;
+boolean foundStartOfMessage = false;
 
 
 boolean Stop = true;
@@ -20,20 +19,24 @@ int checkConnected = 0;
 boolean isSensorOn = false;
 boolean isAutomtic = false;
 
-int motorDir1 = RELEASE;
-int motorDir2 = RELEASE;
-int motorDir3 = RELEASE;
-int motorDir4 = RELEASE;
-
-int strengthMotor1 = 0;
-int strengthMotor2 = 0;
-int strengthMotor3 = 0;
-int strengthMotor4 = 0;
+const byte STOP = 0;
+byte CURRENT_STATE = STOP;
+const byte FORWARD_ = 1;
+const byte BACKWARD_ = 2;
+const byte RIGHT_ROTATE_BACKWARDS = 3;
+const byte LEFT_ROTATE_BACKWARDS = 4;
+const byte RIGHT_ROTATE_FORWARDS = 5;
+const byte LEFT_ROTATE_FORWARDS = 6;
+const byte SENSOR_ON = 7;
+const byte SENSOR_OFF = 8;
+const byte AUTOMATIC_ON = 9;
+const byte AUTOMATIC_OFF = 10;
 
 // ultrasonic Sensor
-
 const int echoPin = 2;
 const int trigPin = 13;
+
+const int MIN_DISTANCE_IN_CENTIMETERS = 5;
 
 void setup(){
     Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
@@ -44,123 +47,92 @@ void setup(){
 }
 
 void loop(){
-  availableBitsInBuffer = Serial.available();
-  
-  if(availableBitsInBuffer > 0){
-     checkConnected = 0;
-     Serial.readBytes(buf, availableBitsInBuffer);
-
-     for(int i = 0; i < availableBitsInBuffer; i++){
-        command[lastIndex] = buf[i];
-        if(lastIndex==BUFFER_SIZE-1){
-           lastIndex = 0; 
-          
-           isSensorOn = command[0] == 'E';
-           isAutomtic = command[1] == 'A';
-           
-           motorDir1 = RELEASE;
-           if(command[2] == 'F'){
-              motorDir1 = FORWARD;
-           }else if(command[2] == 'B'){
-              motorDir1 = BACKWARD;
-           }
-           strengthMotor1 = getStrengthFromInput(command[3], command[4], command[5]);
-           
-           motorDir2 = RELEASE;
-           if(commandf[6] == 'F'){
-              motorDir2 = FORWARD;
-           }else if(command[6] == 'B'){
-              motorDir2 = BACKWARD;
-           }
-           strengthMotor2 = getStrengthFromInput(command[7], command[8], command[9]);
-           
-           motorDir3 = RELEASE;
-           if(command[10] == 'F'){
-              motorDir3 = FORWARD;
-           }else if(command[10] == 'B'){
-              motorDir3 = BACKWARD;
-           }
-           strengthMotor3 = getStrengthFromInput(command[11], command[12], command[13]);
-           
-           motorDir4 = RELEASE;
-           if(command[14] == 'F'){
-              motorDir4 = FORWARD;
-           }else if(command[14] == 'B'){
-              motorDir4 = BACKWARD;
-           }
-           strengthMotor4 = getStrengthFromInput(command[15], command[16], command[17]);
-           
-           for( int i = 0; i < BUFFER_SIZE; i++){
-                 Serial.print(String(command[i]));   
-           } 
-           Serial.println();
-           Serial.println("Sensor:"+ String(isSensorOn));
-           Serial.println("Automtic: "+String(isAutomtic));
-           Serial.println("motor1: "+String(strengthMotor1));
-           Serial.println("motor2: "+String(strengthMotor2));                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
-           Serial.println("motor3: "+String(strengthMotor3));
-           Serial.println("motor4: "+String(strengthMotor4));
-       }
-       lastIndex++;
-     }
-
+  if (Serial.available() > 0){ 
+   //Read the next available byte in the serial receive buffer
     
+   
+    byte data = Serial.read();
+    Serial.println(String(data));
+    if(data <= 10 and data != CURRENT_STATE){
+      if(CURRENT_STATE == AUTOMATIC_ON){
+        isAutomtic = true;
+      }else if(CURRENT_STATE == AUTOMATIC_OFF){
+        isAutomtic = false;
+      }else if(CURRENT_STATE == SENSOR_ON){
+        isAutomtic = true;
+      }else if(CURRENT_STATE == SENSOR_OFF){
+        isAutomtic = false;
+      }else{  
+        CURRENT_STATE = data; 
+      } 
+      
+     
+    }else{
 
-  }else if (checkConnected<=255){
-     checkConnected++;
+      switch (CURRENT_STATE){
+        case FORWARD_:
+          if(isSensorOn){
+            if(caculateDistanance() > MIN_DISTANCE_IN_CENTIMETERS){
+              setAllMotorStrength(data);
+              goForward();
+            }
+          }else{
+            setAllMotorStrength(data);
+            goForward();  
+          }
+          break;
+        case LEFT_ROTATE_BACKWARDS:
+          setMotorStrengthLeft(data);
+          goLeft();
+          break;
+        case RIGHT_ROTATE_BACKWARDS:
+          setMotorStrengthRight(data);
+          goRight();
+          break;
+        case LEFT_ROTATE_FORWARDS:
+          setMotorStrengthLeft(data);
+          goForward();
+          break;
+        case RIGHT_ROTATE_FORWARDS:
+          setMotorStrengthRight(data);
+          goForward();
+          break;
+        case STOP:
+          setAllMotorStrength(0);
+          doStop();
+          break;
+        case BACKWARD_:
+          setAllMotorStrength(data);
+          goBack();
+          break;
+    }
   }
+}
   
-  if(checkConnected > 255){
-      doStop();
-  }else{
-
-     motor1.setSpeed(strengthMotor1);
-     motor2.setSpeed(strengthMotor2);
-     motor3.setSpeed(strengthMotor3);
-     motor4.setSpeed(strengthMotor4);
-
-     motor1.run(motorDir1);
-     motor2.run(motorDir2);
-     motor3.run(motorDir3);
-     motor4.run(motorDir4); 
-  }
- 
-
-//  switch (data){
-//    case 'F':
-//     if(isSensorOn){
-//        if(caculateDistanance() > 5){
-//          setMotorStrengthForward(strength);
-//          goForward();
-//        }
-//     }
-//      
-//      break;
-//    case 'L':
-//      goLeft(strength);
-//      break;
-//    case 'R':
-//      goRight(strength);
-//      break;
-//    case 'S':
-//      setMotorStrengthForward(0);
-//      doStop();
-//      break;
-//    case 'B':
-//      setMotorStrengthForward(strength);
-//      goBack();
-//      break;
-//  }
-//  
 }
 
-void setMotorStrengthForward(int s){
+void setAllMotorStrength(int s){
   s = abs(s);
   motor1.setSpeed(s);
   motor2.setSpeed(s);
   motor3.setSpeed(s);
   motor4.setSpeed(s);
 
+}
+
+void setMotorStrengthLeft(int s){
+  motor1.setSpeed(255);
+  motor2.setSpeed(s);
+  motor3.setSpeed(255);
+  motor4.setSpeed(s);
+
+}
+
+void setMotorStrengthRight(int s){
+  motor1.setSpeed(s);
+  motor2.setSpeed(255);
+  motor3.setSpeed(s);
+  motor4.setSpeed(255);
 }
 
 void doStop(){
@@ -184,28 +156,19 @@ void goForward(){
   motor4.run(FORWARD);
 }
 
-void goLeft(int s){
+void goLeft(){
   motor1.run(FORWARD);
   motor2.run(BACKWARD);
   motor3.run(FORWARD);
   motor4.run(BACKWARD);
 }
-void goRight(int s){
+void goRight(){
   motor1.run(BACKWARD);
   motor2.run(FORWARD);
   motor3.run(BACKWARD);
   motor4.run(FORWARD);
 }
 
-int getStrengthFromInput(char one, char two, char three){
-  String oneString = String(one);
-  String twoString = String(two);
-  String threeString = String(three);
-  String all = oneString + twoString + threeString;
-  all.replace("X","");
-
-  return all.toInt();; 
-}
 
 int caculateDistanance(){
   // resets the trigPin

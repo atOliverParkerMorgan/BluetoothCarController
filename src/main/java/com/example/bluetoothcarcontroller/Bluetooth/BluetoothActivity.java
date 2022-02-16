@@ -48,6 +48,8 @@ public class BluetoothActivity extends Activity {
         setContentView(R.layout.activity_bluetooth);
         locationPermissions();
 
+        MainActivity.isConnectedToBluetoothReceiver = MainActivity.isConnected();
+
         devicesListView = findViewById(R.id.devices);
         searching  = findViewById(R.id.textView);
         searchProgressbar = findViewById(R.id.progressBar);

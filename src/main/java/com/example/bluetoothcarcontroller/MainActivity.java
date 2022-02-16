@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
@@ -22,26 +23,57 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.bluetoothcarcontroller.Bluetooth.BluetoothActivity;
+import com.example.bluetoothcarcontroller.Bluetooth.Device;
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcontroler.R;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.github.controlwear.virtual.joystick.android.JoystickView;
 
 public class MainActivity extends AppCompatActivity {
     public static final java.util.UUID UUID = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
+
     int SELECT_DEVICE_REQUEST_CODE = -1;
+    private static final byte NULL_MESSAGE = -1;
+
+    private static final byte STOP = 0;
+    private static byte CURRENT_STATE = STOP;
+    private static final byte FORWARD = 1;
+    private static final byte BACKWARD = 2;
+    private static final byte RIGHT_ROTATE_BACKWARDS = 3;
+    private static final byte LEFT_ROTATE_BACKWARDS = 4;
+    private static final byte RIGHT_ROTATE_FORWARDS = 5;
+    private static final byte LEFT_ROTATE_FORWARDS = 6;
+    private static final byte SENSOR_ON = 7;
+    private static final byte SENSOR_OFF = 8;
+    private static final byte AUTOMATIC_ON = 9;
+    private static final byte AUTOMATIC_OFF = 10;
+
+
+    private static boolean isSensorStateChange = false;
     private static boolean isSensorOn = false;
+
+    private static boolean isSearchingAutomaticStateChange = false;
     private static boolean isSearchingAutomatic = false;
+
+
     public static boolean isConnectedToBluetoothReceiver = false;
     public static BluetoothDevice connectedDevice = null;
 
-    private final int MAX_STRENGTH = 255;
-    private final int MIN_STRENGTH = 0;
+    private static Handler mainHandler;
 
-    private final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
+    private static final int MAX_STRENGTH = 255;
+    private static final int MIN_STRENGTH = 0;
+
+    private static ExecutorService executorService;
+
+    private static final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
 
     @Override
     protected void onResume() {
@@ -63,24 +95,29 @@ public class MainActivity extends AppCompatActivity {
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // init
+        executorService = Executors.newSingleThreadExecutor();
 
         ImageButton sensor = findViewById(R.id.sensor_button);
         ImageButton pair = findViewById(R.id.bluetooth_button);
         ImageButton automatic = findViewById(R.id.autoamtic_button);
 
-        Handler mainHandler = new Handler(this.getMainLooper());
+        // to update GUI from threads
+        mainHandler = new Handler(this.getMainLooper());
 
+        // make sure that app is always portrait
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
+        // is connected to HC-05
         isConnectedToBluetoothReceiver = isConnected();
 
-        OutputStream outputStream = DeviceAdapter.getOutputStream();
 
         TextView connected = findViewById(R.id.connected);
         TextView notConnected = findViewById(R.id.notConnected);
-
         connected.setVisibility(isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
         notConnected.setVisibility(!isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
 
@@ -90,86 +127,19 @@ public class MainActivity extends AppCompatActivity {
             sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_off_24));
         }
 
-        // left joystick
+
+        // joystick logic
         JoystickView joystickRight = findViewById(R.id.joystick);
         joystickRight.setOnMoveListener((angle, strength) -> {
-           // Log.d("Angle: ", String.valueOf(angle));
-
-            if(outputStream!=null){
-                try {
-                    new Thread(() -> {
-
-                        try {
-                            int normalizedStrength = (int) (strength * ONE_PERCENT_OF_STRENGTH);
-
-                            StringBuilder output = new StringBuilder();
-                            if(isSensorOn) output.append("E");
-                            else output.append("N");
-                            if(isSearchingAutomatic) output.append("A");
-                            else output.append("N");
-                            StringBuilder strengthString = new StringBuilder(String.valueOf(normalizedStrength));
-                            while (strengthString.length()<3){
-                                strengthString.append("X");
-                            }
-                            if(strength<5){
-                                for (int i = 0; i < 4; i++) {
-                                    output.append("S").append("XXX");
-                                }
-
-                            }else if(angle>75 && angle < 115){
-                                for (int i = 0; i < 4; i++) {
-                                    output.append("F").append(strengthString);
-                                }
-
-                            }else if(angle>255 && angle < 295) {
-                                for (int i = 0; i < 4; i++) {
-                                    output.append("B").append(strengthString);
-                                }
-                            }else {
-                                char dir = normalizedStrength <= MAX_STRENGTH/2 ? 'B': 'F';
-                                int fixedStrength = normalizedStrength < MAX_STRENGTH / 2 ? MAX_STRENGTH - normalizedStrength : normalizedStrength;
-                                if(dir == 'F') fixedStrength -= 15*ONE_PERCENT_OF_STRENGTH;
-
-                                StringBuilder fixedStrengthString = new StringBuilder(String.valueOf((int)(fixedStrength)));
-                                while (fixedStrengthString.length()<3){
-                                    fixedStrengthString.append("X");
-                                }
-                                if(angle < 80 || angle > 290){
-                                    // right
-                                    output.append(dir).append(fixedStrengthString).append("F").append(MAX_STRENGTH).append(dir).append(fixedStrengthString).append("F").append(MAX_STRENGTH);
-                                }else if(angle > 80 || angle < 260){
-                                    //left
-                                    output.append("F").append(MAX_STRENGTH).append(dir).append(fixedStrengthString).append("F").append(MAX_STRENGTH).append(dir).append(fixedStrengthString);
-                                }
-                            }
-                            Log.d("OUTPUT: ", output.toString());
-                            Log.d("OUTPUT: ", String.valueOf(output.toString().length()));
-                            outputStream.write(output.toString().getBytes());
-
-                        } catch (IOException e) {
-                            isConnectedToBluetoothReceiver = false;
-                            mainHandler.post(()->{
-                                connected.setVisibility(View.INVISIBLE);
-                                notConnected.setVisibility(View.VISIBLE);
-                            });
-
-                        }
-
-                    }).start();
-                }catch (Exception e) {
-                    isConnectedToBluetoothReceiver = false;
-                    mainHandler.post(()->{
-                        connected.setVisibility(View.INVISIBLE);
-                        notConnected.setVisibility(View.VISIBLE);
-                    });
-
-                }
+            if(DeviceAdapter.getOutputStream()!=null){
+                executorService.submit(()-> sendDataByBluetooth(angle, strength, connected, notConnected));
             }
         });
 
         pair.setOnClickListener(view -> startActivity(new Intent(this, BluetoothActivity.class)));
         sensor.setOnClickListener(view -> {
            // sensor.setImageDrawable(R.drawable.);
+            isSensorStateChange = true;
             isSensorOn = !isSensorOn;
             if(isSensorOn){
                 sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_24));
@@ -180,7 +150,11 @@ public class MainActivity extends AppCompatActivity {
         automatic.setOnClickListener(view -> {
            // automatic.setImageDrawable(R.drawable.);
             isSearchingAutomatic = !isSearchingAutomatic;
+            isSearchingAutomaticStateChange = true;
+
         });
+
+
 
     }
     @Override
@@ -207,6 +181,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
+
     public static void showAlert(Context context, String message, String text, Runnable action){
         AlertDialog.Builder alert = new AlertDialog.Builder(context);
         alert.setTitle(message);
@@ -222,12 +198,123 @@ public class MainActivity extends AppCompatActivity {
     public static boolean isConnected(){
         try {
             OutputStream outputStream = DeviceAdapter.getOutputStream();
-            outputStream.write("NNSXXXSXXXSXXXSXXX!".getBytes());
+            outputStream.write(NULL_MESSAGE);
 
             return true;
+
         }catch (Exception e){
             return false;
         }
     }
 
+    public static void sendDataByBluetooth(int angle, int strength, TextView connected, TextView notConnected){
+        try {
+            byte normalizedStrength = (byte) (strength * ONE_PERCENT_OF_STRENGTH);
+
+
+            if(isSensorStateChange){
+                byte state = isSensorOn? SENSOR_ON: SENSOR_OFF;
+                sendData(state, 1);
+                isSensorStateChange = false;
+                return;
+            }
+            if(isSearchingAutomaticStateChange){
+                byte state = isSearchingAutomatic? AUTOMATIC_ON: AUTOMATIC_OFF;
+                sendData(state, 1);
+                isSearchingAutomaticStateChange = false;
+                return;
+            }
+
+            if(strength<=10){
+               if(CURRENT_STATE != STOP){
+                   CURRENT_STATE = STOP;
+                   sendData(STOP, 5);
+               }
+
+            }else if(angle>75 && angle < 115){
+                if(CURRENT_STATE != FORWARD){
+                    CURRENT_STATE = FORWARD;
+                    sendData(FORWARD, 5);
+                }else {
+                    sendData(normalizedStrength, 1);
+                }
+
+            }else if(angle>255 && angle < 295) {
+                if(CURRENT_STATE != BACKWARD){
+                    CURRENT_STATE = BACKWARD;
+                    sendData(BACKWARD, 5);
+                }else {
+                    sendData(normalizedStrength, 1);
+                }
+            }else {
+                Log.d("STRENGTH: ", String.valueOf(strength));
+                boolean goBackward = strength <= 50;
+                byte fixedStrength = goBackward ? (byte) (MAX_STRENGTH - normalizedStrength/2) : normalizedStrength;
+
+
+                if(angle < 80 || angle > 290){
+
+                    // right
+                    if(goBackward){
+                        if(CURRENT_STATE!=RIGHT_ROTATE_BACKWARDS){
+                            CURRENT_STATE = RIGHT_ROTATE_BACKWARDS;
+                            sendData(RIGHT_ROTATE_BACKWARDS, 5);
+                            return;
+                        }
+                    }else {
+                        if(CURRENT_STATE!=RIGHT_ROTATE_FORWARDS){
+                            CURRENT_STATE = RIGHT_ROTATE_FORWARDS;
+                            sendData(RIGHT_ROTATE_FORWARDS, 5);
+                            return;
+                        }
+                    }
+
+                    sendData(fixedStrength, 1);
+                }else if(angle > 80 || angle < 260){
+                    // left
+                    if(goBackward){
+                        if(CURRENT_STATE!=LEFT_ROTATE_BACKWARDS){
+                            CURRENT_STATE = LEFT_ROTATE_BACKWARDS;
+                            sendData(LEFT_ROTATE_BACKWARDS, 5);
+                            return;
+                        }
+                    }else {
+                        if(CURRENT_STATE!=LEFT_ROTATE_FORWARDS){
+                            CURRENT_STATE = LEFT_ROTATE_FORWARDS;
+                            sendData(LEFT_ROTATE_FORWARDS, 5);
+                            return;
+                        }
+                    }
+
+                    sendData(fixedStrength, 1);
+                }
+            }
+
+
+        } catch (IOException e) {
+            isConnectedToBluetoothReceiver = false;
+            mainHandler.post(()->{
+                connected.setVisibility(View.INVISIBLE);
+                notConnected.setVisibility(View.VISIBLE);
+            });
+
+        }
+    }
+
+    static void sendData(byte data, int numberOfTimesToSendData) throws IOException{
+        for (int i = 0; i < numberOfTimesToSendData; i++) {
+            if(numberOfTimesToSendData>1) System.out.println(data);
+            DeviceAdapter.getOutputStream().write(data);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        try {
+            DeviceAdapter.getOutputStream().close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

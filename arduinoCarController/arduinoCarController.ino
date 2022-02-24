@@ -7,6 +7,8 @@ AF_DCMotor motor2(2, MOTOR12_64KHZ);
 AF_DCMotor motor3(3, MOTOR12_64KHZ);
 AF_DCMotor motor4(4, MOTOR12_64KHZ);
 
+int con = 0;
+
 String all = "";
 const int BUFFER_SIZE = 20;
 char buf[BUFFER_SIZE];
@@ -17,7 +19,7 @@ boolean foundStartOfMessage = false;
 boolean Stop = true;
 int checkConnected = 0;
 boolean isSensorOn = false;
-boolean isAutomtic = false;
+boolean isAutomatic = false;
 
 const byte STOP = 0;
 byte CURRENT_STATE = STOP;
@@ -38,6 +40,8 @@ const int trigPin = 13;
 
 const int MIN_DISTANCE_IN_CENTIMETERS = 5;
 
+const double rotateConstant = 4.7;
+
 void setup(){
     Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
     Serial.println("INITIALIZING CAR");
@@ -47,68 +51,77 @@ void setup(){
 }
 
 void loop(){
-  if (Serial.available() > 0){ 
+  if (Serial.available() > 0){
+    con = 0;
    //Read the next available byte in the serial receive buffer
-    
-   
     byte data = Serial.read();
     Serial.println(String(data));
     if(data <= 10 and data != CURRENT_STATE){
-      if(CURRENT_STATE == AUTOMATIC_ON){
-        isAutomtic = true;
-      }else if(CURRENT_STATE == AUTOMATIC_OFF){
-        isAutomtic = false;
-      }else if(CURRENT_STATE == SENSOR_ON){
-        isAutomtic = true;
-      }else if(CURRENT_STATE == SENSOR_OFF){
-        isAutomtic = false;
-      }else{  
-        CURRENT_STATE = data; 
-      } 
-      
-     
-    }else{
+      if(data == AUTOMATIC_ON){
+        isAutomatic = true;
+      }else if(data == AUTOMATIC_OFF){
+        isAutomatic = false;
+      }else if(data == SENSOR_ON){
+        isSensorOn = true;
+      }else if(data == SENSOR_OFF){
+        isSensorOn = false;
+      }else{
+        CURRENT_STATE = data;
+      }
 
-      switch (CURRENT_STATE){
-        case FORWARD_:
-          if(isSensorOn){
-            if(caculateDistanance() > MIN_DISTANCE_IN_CENTIMETERS){
-              setAllMotorStrength(data);
-              goForward();
-            }
-          }else{
+
+  }else{
+      if(con>100){
+        doStop();
+        return;
+      }
+      else con++;
+  }
+  if(isAutomatic){
+    rotateRightByDegrees(360);
+  }
+  else{
+
+    switch (CURRENT_STATE){
+
+      case FORWARD_:
+        if(isSensorOn){
+          if(calculateDistance() > MIN_DISTANCE_IN_CENTIMETERS){
             setAllMotorStrength(data);
-            goForward();  
+            goForward();
           }
-          break;
-        case LEFT_ROTATE_BACKWARDS:
-          setMotorStrengthLeft(data);
-          goLeft();
-          break;
-        case RIGHT_ROTATE_BACKWARDS:
-          setMotorStrengthRight(data);
-          goRight();
-          break;
-        case LEFT_ROTATE_FORWARDS:
-          setMotorStrengthLeft(data);
-          goForward();
-          break;
-        case RIGHT_ROTATE_FORWARDS:
-          setMotorStrengthRight(data);
-          goForward();
-          break;
-        case STOP:
-          setAllMotorStrength(0);
-          doStop();
-          break;
-        case BACKWARD_:
+        }else{
           setAllMotorStrength(data);
-          goBack();
-          break;
+          goForward();
+        }
+        break;
+      case LEFT_ROTATE_BACKWARDS:
+        setMotorStrengthLeft(data);
+        goLeft();
+        break;
+      case RIGHT_ROTATE_BACKWARDS:
+        setMotorStrengthRight(data);
+        goRight();
+        break;
+      case LEFT_ROTATE_FORWARDS:
+        setMotorStrengthLeft(data);
+        goForward();
+        break;
+      case RIGHT_ROTATE_FORWARDS:
+        setMotorStrengthRight(data);
+        goForward();
+        break;
+      case STOP:
+        setAllMotorStrength(0);
+        doStop();
+        break;
+      case BACKWARD_:
+        setAllMotorStrength(data);
+        goBack();
+        break;
+      }
     }
   }
-}
-  
 }
 
 void setAllMotorStrength(int s){
@@ -169,8 +182,18 @@ void goRight(){
   motor4.run(FORWARD);
 }
 
+void rotateRightByDegrees(int degree){
+    // calculate delay
+    int d = (int) (degree * rotateConstant);
+    setAllMotorStrength(255);
+    for(int i =0 ;i < d; i++){
+      goRight();
+    }
+    doStop();
 
-int caculateDistanance(){
+}
+
+int calculateDistance(){
   // resets the trigPin
   digitalWrite(trigPin, LOW);
   delayMicroseconds(1l);

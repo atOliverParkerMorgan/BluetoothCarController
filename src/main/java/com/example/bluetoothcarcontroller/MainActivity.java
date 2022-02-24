@@ -10,12 +10,12 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -23,14 +23,11 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import com.example.bluetoothcarcontroller.Bluetooth.BluetoothActivity;
-import com.example.bluetoothcarcontroller.Bluetooth.Device;
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcontroler.R;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -75,6 +72,10 @@ public class MainActivity extends AppCompatActivity {
 
     private static final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
 
+    ImageButton sensor;
+    ImageButton automatic;
+
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -84,12 +85,8 @@ public class MainActivity extends AppCompatActivity {
         connected.setVisibility(isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
         notConnected.setVisibility(!isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
 
-        ImageButton sensor = findViewById(R.id.sensor_button);
-        if(isSensorOn){
-            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_24));
-        }else{
-            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_off_24));
-        }
+        sensor = findViewById(R.id.sensor_button);
+        setImages();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
@@ -102,9 +99,9 @@ public class MainActivity extends AppCompatActivity {
         // init
         executorService = Executors.newSingleThreadExecutor();
 
-        ImageButton sensor = findViewById(R.id.sensor_button);
+        sensor = findViewById(R.id.sensor_button);
         ImageButton pair = findViewById(R.id.bluetooth_button);
-        ImageButton automatic = findViewById(R.id.autoamtic_button);
+        automatic = findViewById(R.id.autoamtic_button);
 
         // to update GUI from threads
         mainHandler = new Handler(this.getMainLooper());
@@ -121,11 +118,7 @@ public class MainActivity extends AppCompatActivity {
         connected.setVisibility(isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
         notConnected.setVisibility(!isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
 
-        if(isSensorOn){
-            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_24));
-        }else{
-            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_off_24));
-        }
+        setImages();
 
 
         // joystick logic
@@ -141,16 +134,23 @@ public class MainActivity extends AppCompatActivity {
            // sensor.setImageDrawable(R.drawable.);
             isSensorStateChange = true;
             isSensorOn = !isSensorOn;
-            if(isSensorOn){
-                sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_24));
-            }else{
-                sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_off_24));
+            setImages();
+            try {
+                sendDataByBluetooth(-1, -1, connected, notConnected);
+            }catch (Exception e){
+                Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
             }
         });
         automatic.setOnClickListener(view -> {
            // automatic.setImageDrawable(R.drawable.);
             isSearchingAutomatic = !isSearchingAutomatic;
             isSearchingAutomaticStateChange = true;
+            setImages();
+            try {
+                sendDataByBluetooth(-1, -1, connected, notConnected);
+            }catch (Exception e){
+                Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
+            }
 
         });
 
@@ -214,18 +214,16 @@ public class MainActivity extends AppCompatActivity {
 
             if(isSensorStateChange){
                 byte state = isSensorOn? SENSOR_ON: SENSOR_OFF;
-                sendData(state, 1);
+                sendData(state, 5);
                 isSensorStateChange = false;
-                return;
             }
-            if(isSearchingAutomaticStateChange){
+            else if(isSearchingAutomaticStateChange){
                 byte state = isSearchingAutomatic? AUTOMATIC_ON: AUTOMATIC_OFF;
-                sendData(state, 1);
+                sendData(state, 5);
                 isSearchingAutomaticStateChange = false;
-                return;
             }
 
-            if(strength<=10){
+            else if(strength<=10){
                if(CURRENT_STATE != STOP){
                    CURRENT_STATE = STOP;
                    sendData(STOP, 5);
@@ -261,15 +259,16 @@ public class MainActivity extends AppCompatActivity {
                             sendData(RIGHT_ROTATE_BACKWARDS, 5);
                             return;
                         }
+                        sendData(fixedStrength, 1);
                     }else {
                         if(CURRENT_STATE!=RIGHT_ROTATE_FORWARDS){
                             CURRENT_STATE = RIGHT_ROTATE_FORWARDS;
                             sendData(RIGHT_ROTATE_FORWARDS, 5);
                             return;
                         }
+                        sendData((byte) (fixedStrength*0.7), 1);
                     }
 
-                    sendData(fixedStrength, 1);
                 }else if(angle > 80 || angle < 260){
                     // left
                     if(goBackward){
@@ -278,15 +277,17 @@ public class MainActivity extends AppCompatActivity {
                             sendData(LEFT_ROTATE_BACKWARDS, 5);
                             return;
                         }
+                        sendData(fixedStrength, 1);
                     }else {
                         if(CURRENT_STATE!=LEFT_ROTATE_FORWARDS){
                             CURRENT_STATE = LEFT_ROTATE_FORWARDS;
                             sendData(LEFT_ROTATE_FORWARDS, 5);
                             return;
                         }
+                        sendData((byte) (fixedStrength*0.7), 1);
                     }
 
-                    sendData(fixedStrength, 1);
+
                 }
             }
 
@@ -316,5 +317,19 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    void setImages(){
+        if(isSensorOn){
+            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_24));
+        }else{
+            sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_off_24));
+        }
+        if(isSearchingAutomatic){
+            automatic.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_filter_tilt_shift_24));
+        }else {
+            automatic.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_control_camera_24));
+        }
+
     }
 }

@@ -122,12 +122,13 @@ public class MainActivity extends AppCompatActivity {
 
 
         // joystick logic
-        JoystickView joystickRight = findViewById(R.id.joystick);
-        joystickRight.setOnMoveListener((angle, strength) -> {
+        JoystickView joystick = findViewById(R.id.joystick);
+        joystick.setOnMoveListener((angle, strength) -> {
             if(DeviceAdapter.getOutputStream()!=null){
                 executorService.submit(()-> sendDataByBluetooth(angle, strength, connected, notConnected));
             }
         });
+
 
         pair.setOnClickListener(view -> startActivity(new Intent(this, BluetoothActivity.class)));
         sensor.setOnClickListener(view -> {
@@ -207,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public static void sendDataByBluetooth(int angle, int strength, TextView connected, TextView notConnected){
+    public synchronized static void sendDataByBluetooth(int angle, int strength, TextView connected, TextView notConnected){
         try {
             byte normalizedStrength = (byte) (strength * ONE_PERCENT_OF_STRENGTH);
 
@@ -246,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }else {
                 Log.d("STRENGTH: ", String.valueOf(strength));
-                boolean goBackward = strength <= 50;
+                boolean goBackward = strength <= 40;
                 byte fixedStrength = goBackward ? (byte) (MAX_STRENGTH - normalizedStrength/2) : normalizedStrength;
 
 
@@ -266,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
                             sendData(RIGHT_ROTATE_FORWARDS, 5);
                             return;
                         }
-                        sendData((byte) (fixedStrength*0.7), 1);
+                        sendData(fixedStrength, 1);
                     }
 
                 }else if(angle > 80 || angle < 260){
@@ -284,7 +285,7 @@ public class MainActivity extends AppCompatActivity {
                             sendData(LEFT_ROTATE_FORWARDS, 5);
                             return;
                         }
-                        sendData((byte) (fixedStrength*0.7), 1);
+                        sendData((byte) (fixedStrength), 1);
                     }
 
 

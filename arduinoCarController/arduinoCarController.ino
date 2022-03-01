@@ -20,19 +20,19 @@ boolean Stop = true;
 int checkConnected = 0;
 boolean isSensorOn = false;
 boolean isAutomatic = false;
-
-const byte STOP = 0;
-byte CURRENT_STATE = STOP;
-const byte FORWARD_ = 1;
-const byte BACKWARD_ = 2;
-const byte RIGHT_ROTATE_BACKWARDS = 3;
-const byte LEFT_ROTATE_BACKWARDS = 4;
-const byte RIGHT_ROTATE_FORWARDS = 5;
-const byte LEFT_ROTATE_FORWARDS = 6;
-const byte SENSOR_ON = 7;
-const byte SENSOR_OFF = 8;
-const byte AUTOMATIC_ON = 9;
-const byte AUTOMATIC_OFF = 10;
+int data;
+const int STOP = 0;
+int CURRENT_STATE = STOP;
+const int FORWARD_ = 1;
+const int BACKWARD_ = 2;
+const int RIGHT_ROTATE_BACKWARDS = 3;
+const int LEFT_ROTATE_BACKWARDS = 4;
+const int RIGHT_ROTATE_FORWARDS = 5;
+const int LEFT_ROTATE_FORWARDS = 6;
+const int SENSOR_ON = 7;
+const int SENSOR_OFF = 8;
+const int AUTOMATIC_ON = 9;
+const int AUTOMATIC_OFF = 10;
 
 // ultrasonic Sensor
 const int echoPin = 2;
@@ -40,7 +40,7 @@ const int trigPin = 13;
 
 const int MIN_DISTANCE_IN_CENTIMETERS = 5;
 
-const double rotateConstant = 4.7;
+const double rotateConstant = 4.2;
 
 void setup(){
     Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
@@ -54,8 +54,7 @@ void loop(){
   if (Serial.available() > 0){
     con = 0;
    //Read the next available byte in the serial receive buffer
-    byte data = Serial.read();
-    Serial.println(String(data));
+    data = Serial.read();
     if(data <= 10 and data != CURRENT_STATE){
       if(data == AUTOMATIC_ON){
         isAutomatic = true;
@@ -68,17 +67,21 @@ void loop(){
       }else{
         CURRENT_STATE = data;
       }
+      return;
 
 
   }else{
       if(con>100){
         doStop();
+
         return;
       }
-      else con++;
+      else{
+        con++;
+      }
   }
   if(isAutomatic){
-    rotateRightByDegrees(360);
+      rotateRightByDegrees(360);
   }
   else{
 
@@ -104,11 +107,11 @@ void loop(){
         goRight();
         break;
       case LEFT_ROTATE_FORWARDS:
-        setMotorStrengthLeft(data);
+        setMotorStrengthLeft(data * 0.2);
         goForward();
         break;
       case RIGHT_ROTATE_FORWARDS:
-        setMotorStrengthRight(data);
+        setMotorStrengthRight(data * 0.2);
         goForward();
         break;
       case STOP:
@@ -134,6 +137,7 @@ void setAllMotorStrength(int s){
 }
 
 void setMotorStrengthLeft(int s){
+  s = abs(s);
   motor1.setSpeed(255);
   motor2.setSpeed(s);
   motor3.setSpeed(255);
@@ -142,6 +146,7 @@ void setMotorStrengthLeft(int s){
 }
 
 void setMotorStrengthRight(int s){
+  s = abs(s);
   motor1.setSpeed(s);
   motor2.setSpeed(255);
   motor3.setSpeed(s);
@@ -197,16 +202,16 @@ int calculateDistance(){
   // resets the trigPin
   digitalWrite(trigPin, LOW);
   delayMicroseconds(1l);
-  
+
   // Sets the trigPin on HIGH state for 10 micro seconds
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  
+
   // Reads the echoPin, returns the  sound wave travel time in microseconds
   long duration = pulseIn(echoPin, HIGH);
-  
+
   // Calculating the distance
   return duration*0.034/2;
-  
+
 }

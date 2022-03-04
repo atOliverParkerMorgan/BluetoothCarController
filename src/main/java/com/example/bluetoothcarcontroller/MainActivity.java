@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat;
 
 import com.example.bluetoothcarcontroller.Bluetooth.BluetoothActivity;
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
+import com.example.bluetoothcarcontroller.OpenGL.OpenGLES20Activity;
 import com.example.bluetoothcontroler.R;
 
 import java.io.IOException;
@@ -149,9 +150,14 @@ public class MainActivity extends AppCompatActivity {
             setImages();
             try {
                 sendDataByBluetooth(-1, -1, connected, notConnected);
+                startActivity(new Intent(this, OpenGLES20Activity.class));
+
             }catch (Exception e){
                 Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
+                startActivity(new Intent(this, OpenGLES20Activity.class));
             }
+
+
 
         });
 
@@ -270,7 +276,7 @@ public class MainActivity extends AppCompatActivity {
                         sendData(fixedStrength, 1);
                     }
 
-                }else if(angle > 80 || angle < 260){
+                }else {
                     // left
                     if(goBackward){
                         if(CURRENT_STATE!=LEFT_ROTATE_BACKWARDS){

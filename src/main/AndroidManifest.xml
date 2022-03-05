@@ -57,7 +57,7 @@
 
         </activity>
 
-        <activity android:name="com.example.bluetoothcarcontroller.OpenGL.OpenGLES20Activity"
+        <activity android:name="com.example.bluetoothcarcontroller.AnalyzeActivity"
 
             android:configChanges="orientation"
             android:screenOrientation="portrait">

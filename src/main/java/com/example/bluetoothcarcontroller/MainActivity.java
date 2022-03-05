@@ -16,22 +16,17 @@ import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-
 import com.example.bluetoothcarcontroller.Bluetooth.BluetoothActivity;
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
-import com.example.bluetoothcarcontroller.OpenGL.OpenGLES20Activity;
 import com.example.bluetoothcontroler.R;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import io.github.controlwear.virtual.joystick.android.JoystickView;
 
 public class MainActivity extends AppCompatActivity {
@@ -150,19 +145,13 @@ public class MainActivity extends AppCompatActivity {
             setImages();
             try {
                 sendDataByBluetooth(-1, -1, connected, notConnected);
-                startActivity(new Intent(this, OpenGLES20Activity.class));
+                startActivity(new Intent(this, AnalyzeActivity.class));
 
             }catch (Exception e){
                 Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
-                startActivity(new Intent(this, OpenGLES20Activity.class));
+                startActivity(new Intent(this, AnalyzeActivity.class));
             }
-
-
-
         });
-
-
-
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -266,15 +255,14 @@ public class MainActivity extends AppCompatActivity {
                             sendData(RIGHT_ROTATE_BACKWARDS, 5);
                             return;
                         }
-                        sendData(fixedStrength, 1);
                     }else {
                         if(CURRENT_STATE!=RIGHT_ROTATE_FORWARDS){
                             CURRENT_STATE = RIGHT_ROTATE_FORWARDS;
                             sendData(RIGHT_ROTATE_FORWARDS, 5);
                             return;
                         }
-                        sendData(fixedStrength, 1);
                     }
+                    sendData(fixedStrength, 1);
 
                 }else {
                     // left

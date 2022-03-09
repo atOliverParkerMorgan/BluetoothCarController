@@ -20,14 +20,15 @@ import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentManager;
+
 import com.example.bluetoothcarcontroller.Bluetooth.BluetoothActivity;
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
+import com.example.bluetoothcarcontroller.Fragments.AnalyzeFragment;
+import com.example.bluetoothcarcontroller.Fragments.JoystickFragment;
 import com.example.bluetoothcontroler.R;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import io.github.controlwear.virtual.joystick.android.JoystickView;
 
 public class MainActivity extends AppCompatActivity {
     public static final java.util.UUID UUID = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -55,6 +56,9 @@ public class MainActivity extends AppCompatActivity {
     private static boolean isSearchingAutomaticStateChange = false;
     private static boolean isSearchingAutomatic = false;
 
+    private static boolean isJoystickStateChange = false;
+    private static boolean isJoystick = false;
+
 
     public static boolean isConnectedToBluetoothReceiver = false;
     public static BluetoothDevice connectedDevice = null;
@@ -64,12 +68,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int MAX_STRENGTH = 255;
     private static final int MIN_STRENGTH = 0;
 
-    private static ExecutorService executorService;
 
     private static final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
 
     ImageButton sensor;
     ImageButton automatic;
+    ImageButton pair;
+    ImageButton joystick;
 
 
     @Override
@@ -81,7 +86,6 @@ public class MainActivity extends AppCompatActivity {
         connected.setVisibility(isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
         notConnected.setVisibility(!isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
 
-        sensor = findViewById(R.id.sensor_button);
         setImages();
     }
 
@@ -92,12 +96,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // init
-        executorService = Executors.newSingleThreadExecutor();
 
         sensor = findViewById(R.id.sensor_button);
-        ImageButton pair = findViewById(R.id.bluetooth_button);
-        automatic = findViewById(R.id.autoamtic_button);
+        pair = findViewById(R.id.bluetooth_button);
+        automatic = findViewById(R.id.automatic_button);
+        joystick = findViewById(R.id.joystick_button);
 
         // to update GUI from threads
         mainHandler = new Handler(this.getMainLooper());
@@ -108,48 +111,52 @@ public class MainActivity extends AppCompatActivity {
         // is connected to HC-05
         isConnectedToBluetoothReceiver = isConnected();
 
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        fragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, JoystickFragment.class, savedInstanceState)
+                .commit();
 
-        TextView connected = findViewById(R.id.connected);
-        TextView notConnected = findViewById(R.id.notConnected);
-        connected.setVisibility(isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
-        notConnected.setVisibility(!isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
+
 
         setImages();
 
 
-        // joystick logic
-        JoystickView joystick = findViewById(R.id.joystick);
-        joystick.setOnMoveListener((angle, strength) -> {
-            if(DeviceAdapter.getOutputStream()!=null){
-                executorService.submit(()-> sendDataByBluetooth(angle, strength, connected, notConnected));
-            }
-        });
 
 
         pair.setOnClickListener(view -> startActivity(new Intent(this, BluetoothActivity.class)));
         sensor.setOnClickListener(view -> {
-           // sensor.setImageDrawable(R.drawable.);
             isSensorStateChange = true;
             isSensorOn = !isSensorOn;
             setImages();
             try {
-                sendDataByBluetooth(-1, -1, connected, notConnected);
+                sendDataByBluetooth(-1, -1, null, null);
             }catch (Exception e){
                 Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
             }
         });
         automatic.setOnClickListener(view -> {
-           // automatic.setImageDrawable(R.drawable.);
             isSearchingAutomatic = !isSearchingAutomatic;
             isSearchingAutomaticStateChange = true;
             setImages();
             try {
-                sendDataByBluetooth(-1, -1, connected, notConnected);
-                startActivity(new Intent(this, AnalyzeActivity.class));
-
+                fragmentManager.beginTransaction()
+                        .replace(R.id.fragment_container, AnalyzeFragment.class, savedInstanceState)
+                        .commit();
             }catch (Exception e){
                 Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
-                startActivity(new Intent(this, AnalyzeActivity.class));
+            }
+        });
+
+        joystick.setOnClickListener(view -> {
+            isJoystick = !isJoystick;
+            isJoystickStateChange = true;
+            setImages();
+            try {
+                fragmentManager.beginTransaction()
+                        .replace(R.id.fragment_container, JoystickFragment.class, savedInstanceState)
+                        .commit();
+            }catch (Exception e){
+                Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -203,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public synchronized static void sendDataByBluetooth(int angle, int strength, TextView connected, TextView notConnected){
+    public synchronized static void sendDataByBluetooth(int angle, int strength, @Nullable TextView connected, @Nullable TextView notConnected){
         try {
             byte normalizedStrength = (byte) (strength * ONE_PERCENT_OF_STRENGTH);
 
@@ -290,8 +297,10 @@ public class MainActivity extends AppCompatActivity {
         } catch (IOException e) {
             isConnectedToBluetoothReceiver = false;
             mainHandler.post(()->{
-                connected.setVisibility(View.INVISIBLE);
-                notConnected.setVisibility(View.VISIBLE);
+                if(connected != null || notConnected != null) {
+                    connected.setVisibility(View.INVISIBLE);
+                    notConnected.setVisibility(View.VISIBLE);
+                }
             });
 
         }
@@ -321,10 +330,17 @@ public class MainActivity extends AppCompatActivity {
             sensor.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_visibility_off_24));
         }
         if(isSearchingAutomatic){
-            automatic.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_filter_tilt_shift_24));
+            automatic.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_drive_eta_24));
         }else {
-            automatic.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_control_camera_24));
+            automatic.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_drive_eta_24));
         }
+
+        if(isJoystick){
+            joystick.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_filter_tilt_shift_24));
+        }else {
+            joystick.setImageDrawable(ContextCompat.getDrawable(this, R.drawable.ic_baseline_control_camera_24));
+        }
+
 
     }
 }

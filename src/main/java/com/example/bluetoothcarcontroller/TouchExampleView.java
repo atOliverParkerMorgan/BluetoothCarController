@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -18,6 +19,10 @@ public class TouchExampleView extends View {
     private final Drawable mCarIcon;
     private final Drawable mPointIcon;
 
+    private final long ALLOWED_SCROLL_X = 900;
+    private final long ALLOWED_SCROLL_Y = 900;
+    private long currentScrollX = ALLOWED_SCROLL_X/2;
+    private long currentScrollY = ALLOWED_SCROLL_Y/2;
 
     private float mPosX;
     private float mPosY;
@@ -90,11 +95,23 @@ public class TouchExampleView extends View {
                 final int pointerIndex = ev.findPointerIndex(mActivePointerId);
                 final float x = ev.getX(pointerIndex);
                 final float y = ev.getY(pointerIndex);
+                Log.d("X", String.valueOf(x));
+                Log.d("Y", String.valueOf(y));
+
 
                 // Only move if the ScaleGestureDetector isn't processing a gesture.
                 if (!mScaleDetector.isInProgress()) {
                     final float dx = x - mLastTouchX;
                     final float dy = y - mLastTouchY;
+
+                    if(currentScrollX<0 && dx < 0) break;
+                    if(currentScrollX>ALLOWED_SCROLL_X && dx > 0) break;
+                    if(currentScrollY<0 && dy < 0) break;
+                    if(currentScrollY>ALLOWED_SCROLL_Y && dy > 0) break;
+
+
+                    currentScrollX += dx;
+                    currentScrollY += dy;
 
                     mPosX += dx;
                     mPosY += dy;
@@ -170,7 +187,7 @@ public class TouchExampleView extends View {
             mScaleFactor *= detector.getScaleFactor();
 
             // Don't let the object get too small or too large.
-            mScaleFactor = Math.max(0.1f, Math.min(mScaleFactor, 5.0f));
+            mScaleFactor = Math.max(0.5f, Math.min(mScaleFactor, 2.0f));
 
             invalidate();
             return true;

@@ -7,10 +7,13 @@ AF_DCMotor motor2(2, MOTOR12_64KHZ);
 AF_DCMotor motor3(3, MOTOR12_64KHZ);
 AF_DCMotor motor4(4, MOTOR12_64KHZ);
 
+// for analzing
+int distData[360];
+
 int con = 0;
 
 String all = "";
-const int BUFFER_SIZE = 20;
+const int BUFFER_SIZE = 5;
 char buf[BUFFER_SIZE];
 int bufferIndex = 0;
 boolean foundStartOfMessage = false;
@@ -38,17 +41,20 @@ const int AUTOMATIC_OFF = 10;
 const int echoPin = 2;
 const int trigPin = 13;
 
-const int MIN_DISTANCE_IN_CENTIMETERS = 5;
+const int MIN_DISTANCE_IN_CENTIMETERS = 10;
 
-const double rotateConstant = 4.2;
+const long rotateDelayConstant = 100;
+
+int numberOfChangeStateReads = 0;
+int lastState = 0;
 
 void setup(){
     Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
-    Serial.println("INITIALIZING CAR");
 
     pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
     pinMode(echoPin, INPUT); // Sets the echoPin as an Input
 }
+
 
 void loop(){
   if (Serial.available() > 0){
@@ -56,74 +62,85 @@ void loop(){
    //Read the next available byte in the serial receive buffer
     data = Serial.read();
     if(data <= 10 and data != CURRENT_STATE){
-      if(data == AUTOMATIC_ON){
+      if(numberOfChangeStateReads == 0){
+        if(data == STOP){
+          setAllMotorStrength(0);
+          doStop();
+          return;  
+        }
+        lastState = data;
+        numberOfChangeStateReads++;
+      
+      }else if(numberOfChangeStateReads < 4 and data == lastState){
+        numberOfChangeStateReads++;
+      
+      }else if(data == AUTOMATIC_ON){
         isAutomatic = true;
+        rotateRightByDegrees(360);
+        numberOfChangeStateReads = 0;
       }else if(data == AUTOMATIC_OFF){
         isAutomatic = false;
+        numberOfChangeStateReads = 0;
       }else if(data == SENSOR_ON){
         isSensorOn = true;
+        numberOfChangeStateReads = 0;
       }else if(data == SENSOR_OFF){
         isSensorOn = false;
-      }else{
-        CURRENT_STATE = data;
-      }
+        numberOfChangeStateReads = 0;
+      }else{  
+        CURRENT_STATE = data; 
+        numberOfChangeStateReads = 0;
+      } 
       return;
-
-
+      
+     
   }else{
       if(con>100){
         doStop();
 
         return;
       }
-      else{
+      else{ 
         con++;
       }
   }
-  if(isAutomatic){
-      rotateRightByDegrees(360);
-  }
-  else{
-
-    switch (CURRENT_STATE){
-
-      case FORWARD_:
-        if(isSensorOn){
-          if(calculateDistance() > MIN_DISTANCE_IN_CENTIMETERS){
-            setAllMotorStrength(data);
-            goForward();
-          }
-        }else{
+  
+    
+  switch (CURRENT_STATE){
+     
+    case FORWARD_:
+      if(isSensorOn){
+        if(calculateDistance() > MIN_DISTANCE_IN_CENTIMETERS){
           setAllMotorStrength(data);
           goForward();
         }
-        break;
-      case LEFT_ROTATE_BACKWARDS:
-        setMotorStrengthLeft(data);
-        goLeft();
-        break;
-      case RIGHT_ROTATE_BACKWARDS:
-        setMotorStrengthRight(data);
-        goRight();
-        break;
-      case LEFT_ROTATE_FORWARDS:
-        setMotorStrengthLeft(data * 0.2);
-        goForward();
-        break;
-      case RIGHT_ROTATE_FORWARDS:
-        setMotorStrengthRight(data * 0.2);
-        goForward();
-        break;
-      case STOP:
-        setAllMotorStrength(0);
-        doStop();
-        break;
-      case BACKWARD_:
+      }else{
         setAllMotorStrength(data);
-        goBack();
-        break;
+        goForward();
       }
+      break;
+    case LEFT_ROTATE_BACKWARDS:
+      setMotorStrengthLeft(data);
+      goLeft();
+      break;
+    case RIGHT_ROTATE_BACKWARDS:
+      setMotorStrengthRight(data);
+      goRight();
+      break;
+    case LEFT_ROTATE_FORWARDS:
+      setMotorStrengthLeft(data * 0.5);
+      goForward();
+      break;
+    case RIGHT_ROTATE_FORWARDS:
+      setMotorStrengthRight(data * 0.5);
+      goForward();
+      break;
+    case BACKWARD_:
+      setAllMotorStrength(data);
+      goBack();
+      break;
     }
+    
   }
 }
 
@@ -188,30 +205,36 @@ void goRight(){
 }
 
 void rotateRightByDegrees(int degree){
-    // calculate delay
-    int d = (int) (degree * rotateConstant);
-    setAllMotorStrength(255);
-    for(int i =0 ;i < d; i++){
-      goRight();
-    }
+  // calculate delay
+  setAllMotorStrength(255);
+
+  for(int i = 0; i < degree; i++){
+    goRight();
+     delay(16);
     doStop();
+   
+    distData[i] = calculateDistance();
+    //delay(200);
+  }
+  
 
 }
 
 int calculateDistance(){
+
   // resets the trigPin
   digitalWrite(trigPin, LOW);
   delayMicroseconds(1l);
-
+  
   // Sets the trigPin on HIGH state for 10 micro seconds
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-
+  
   // Reads the echoPin, returns the  sound wave travel time in microseconds
   long duration = pulseIn(echoPin, HIGH);
-
+  Serial.println(duration*0.034/2);
   // Calculating the distance
   return duration*0.034/2;
-
+  
 }

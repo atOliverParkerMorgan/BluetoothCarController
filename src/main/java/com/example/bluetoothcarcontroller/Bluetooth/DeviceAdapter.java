@@ -38,7 +38,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
 
 
     private static OutputStream outputStream;
-    private static BluetoothSocket bluetoothSocket;
+    public static BluetoothSocket bluetoothSocket;
 
 
 
@@ -51,7 +51,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
     }
 
     public DeviceAdapter(@NonNull Context context, ArrayList<Device> devices) {
-        super(context, R.layout.item_device, devices);
+        super(context, R.layout.item_device_layout, devices);
         this.context = context;
         this.devices = devices;
 
@@ -72,7 +72,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
         if (convertView == null) {
 
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            convertView = inflater.inflate(R.layout.item_device, parent, false);
+            convertView = inflater.inflate(R.layout.item_device_layout, parent, false);
             viewHolder.deviceName = convertView.findViewById(R.id.device_name);
             viewHolder.progressBar = convertView.findViewById(R.id.pairProgressBar);
             viewHolder.deviceImage = convertView.findViewById(R.id.device_image);

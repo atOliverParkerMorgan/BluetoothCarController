@@ -2,6 +2,7 @@ package com.example.bluetoothcarcontroller;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
@@ -9,6 +10,8 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
+
+import androidx.appcompat.widget.ThemeUtils;
 
 import com.example.bluetoothcontroler.R;
 
@@ -51,23 +54,23 @@ public class TouchExampleView extends View {
     @SuppressLint("UseCompatLoadingForDrawables")
     public TouchExampleView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-        mCarIcon = getResources().getDrawable(R.drawable.ic_baseline_drive_eta_24);
+        mCarIcon = getContext().getDrawable(R.drawable.ic_baseline_drive_eta_24);
         mCarIcon.setBounds(0, 0, mCarIcon.getIntrinsicWidth(), mCarIcon.getIntrinsicHeight());
 
-        mPointIcon = getResources().getDrawable(R.drawable.ic_baseline_circle_24);
+        mPointIcon = getContext().getDrawable(R.drawable.ic_baseline_circle_24);
         mPointIcon.setBounds(0, 0, mPointIcon.getIntrinsicWidth()/3, mPointIcon.getIntrinsicHeight()/3);
 
         // Create our ScaleGestureDetector
         mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
 
         // 100 random points
-        for (int i = 0; i < 100 ; i++) {
-            float x = (float) (Math.random() * 1000);
-            float y = (float) (Math.random() * 1000);
-
-            float[] cords = new float[]{x, y};
-            addPoint(cords);
-        }
+//        for (int i = 0; i < 100 ; i++) {
+//            float x = (float) (Math.random() * 1000);
+//            float y = (float) (Math.random() * 1000);
+//
+//            float[] cords = new float[]{x, y};
+//            addPoint(cords);
+//        }
     }
 
 

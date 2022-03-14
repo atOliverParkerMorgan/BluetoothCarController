@@ -24,7 +24,7 @@ public class JoystickFragment extends Fragment {
     private static ExecutorService executorService;
 
     public JoystickFragment() {
-        super(R.layout.joystick);
+        super(R.layout.joystick_layout);
     }
 
     @Override

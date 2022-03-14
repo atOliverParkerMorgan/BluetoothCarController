@@ -1,4 +1,5 @@
 #include <AFMotor.h>
+#include <SoftwareSerial.h>
 
 #define PI 3.14159265
 
@@ -17,6 +18,13 @@ const int BUFFER_SIZE = 5;
 char buf[BUFFER_SIZE];
 int bufferIndex = 0;
 boolean foundStartOfMessage = false;
+
+// send data
+const int txPin = 0;
+const int rxPin = 1;
+
+//SoftwareSerial bt(rxPin, txPin);
+
 
 
 boolean Stop = true;
@@ -66,14 +74,14 @@ void loop(){
         if(data == STOP){
           setAllMotorStrength(0);
           doStop();
-          return;  
+          return;
         }
         lastState = data;
         numberOfChangeStateReads++;
-      
+
       }else if(numberOfChangeStateReads < 4 and data == lastState){
         numberOfChangeStateReads++;
-      
+
       }else if(data == AUTOMATIC_ON){
         isAutomatic = true;
         rotateRightByDegrees(360);
@@ -87,27 +95,27 @@ void loop(){
       }else if(data == SENSOR_OFF){
         isSensorOn = false;
         numberOfChangeStateReads = 0;
-      }else{  
-        CURRENT_STATE = data; 
+      }else{
+        CURRENT_STATE = data;
         numberOfChangeStateReads = 0;
-      } 
+      }
       return;
-      
-     
+
+
   }else{
       if(con>100){
         doStop();
 
         return;
       }
-      else{ 
+      else{
         con++;
       }
   }
-  
-    
+
+
   switch (CURRENT_STATE){
-     
+
     case FORWARD_:
       if(isSensorOn){
         if(calculateDistance() > MIN_DISTANCE_IN_CENTIMETERS){
@@ -140,7 +148,7 @@ void loop(){
       goBack();
       break;
     }
-    
+
   }
 }
 
@@ -210,31 +218,37 @@ void rotateRightByDegrees(int degree){
 
   for(int i = 0; i < degree; i++){
     goRight();
-     delay(16);
+    delay(15);
     doStop();
-   
+
     distData[i] = calculateDistance();
-    //delay(200);
+    Serial.write(byte(distData[i]));
+
+    delay(2000);
+
   }
-  
+
+
+
 
 }
+
 
 int calculateDistance(){
 
   // resets the trigPin
   digitalWrite(trigPin, LOW);
   delayMicroseconds(1l);
-  
+
   // Sets the trigPin on HIGH state for 10 micro seconds
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  
+
   // Reads the echoPin, returns the  sound wave travel time in microseconds
   long duration = pulseIn(echoPin, HIGH);
-  Serial.println(duration*0.034/2);
+  //Serial.println(duration*0.034/2);
   // Calculating the distance
   return duration*0.034/2;
-  
+
 }

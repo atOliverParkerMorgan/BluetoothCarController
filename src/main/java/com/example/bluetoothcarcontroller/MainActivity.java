@@ -5,8 +5,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothServerSocket;
-import android.bluetooth.BluetoothSocket;
 import android.companion.CompanionDeviceManager;
 import android.content.Context;
 import android.content.Intent;
@@ -16,30 +14,23 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
-import com.example.bluetoothcarcontroller.Bluetooth.BluetoothActivity;
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
-import com.example.bluetoothcarcontroller.Fragments.AnalyzeFragment;
+import com.example.bluetoothcarcontroller.Fragments.AutopilotFragment;
+import com.example.bluetoothcarcontroller.Fragments.BluetoothFragment;
 import com.example.bluetoothcarcontroller.Fragments.JoystickFragment;
 import com.example.bluetoothcontroler.R;
 import com.gauravk.bubblenavigation.BubbleNavigationConstraintView;
-import com.gauravk.bubblenavigation.listener.BubbleNavigationChangeListener;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-import com.google.android.material.navigation.NavigationBarView;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
     public static final java.util.UUID UUID = java.util.UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
@@ -64,12 +55,8 @@ public class MainActivity extends AppCompatActivity {
 
     private static boolean isSensorStateChange = false;
     private static boolean isSensorOn = false;
-
-    private static boolean isSearchingAutomaticStateChange = false;
     private static boolean isSearchingAutomatic = false;
-
-    private static boolean isJoystickStateChange = false;
-    private static boolean isJoystick = false;
+    private static boolean isSearchingAutomaticStateChange = false;
 
 
     public static boolean isConnectedToBluetoothReceiver = false;
@@ -80,11 +67,16 @@ public class MainActivity extends AppCompatActivity {
     private static final int MAX_STRENGTH = 255;
     private static final int MIN_STRENGTH = 0;
 
+    private static final int JOYSTICK_FRAGMENT_POSITION = 0;
+    private static final int AUTOPILOT_FRAGMENT_POSITION = 1;
+    private static final int SENSOR_FRAGMENT_POSITION = 2;
+    private static final int BLUETOOTH_FRAGMENT_POSITION = 3;
 
 
     private static final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
 
-    BubbleNavigationConstraintView bubbleNavigationConstraintView;
+    private BubbleNavigationConstraintView bubbleNavigationConstraintView;
+    private FragmentManager fragmentManager;
 
 
     @Override
@@ -116,57 +108,39 @@ public class MainActivity extends AppCompatActivity {
         // is connected to HC-05
         isConnectedToBluetoothReceiver = isConnected();
 
-        FragmentManager fragmentManager = getSupportFragmentManager();
-        fragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, JoystickFragment.class, savedInstanceState)
-                .commit();
+        fragmentManager = getSupportFragmentManager();
+        switchFragment(savedInstanceState, JoystickFragment.class);
 
+        bubbleNavigationConstraintView.setNavigationChangeListener((view, position) -> {
+            //navigation changed, do something
+            switch (position){
+                case JOYSTICK_FRAGMENT_POSITION:
+                    switchFragment(savedInstanceState, JoystickFragment.class);
+                    break;
+                case AUTOPILOT_FRAGMENT_POSITION:
+                    try {
+                        sendData(AUTOMATIC_ON, 5);
+                    } catch (Exception e) {
+                        Toast.makeText(this, "Error, no connection. Try to connect via Bluetooth", Toast.LENGTH_LONG).show();
+                    }
+                    switchFragment(savedInstanceState, AutopilotFragment.class);
+                    break;
+                case SENSOR_FRAGMENT_POSITION:
+                    try {
+                        sendData(SENSOR_ON, 5);
+                    } catch (Exception e) {
+                        Toast.makeText(this, "Error, no connection. Try to connect via Bluetooth", Toast.LENGTH_LONG).show();
+                    }
+                    break;
+                case BLUETOOTH_FRAGMENT_POSITION:
+                    BluetoothAdapter.getDefaultAdapter().enable();
 
-//        pair.setOnClickListener(view -> startActivity(new Intent(this, BluetoothActivity.class)));
-//        sensor.setOnClickListener(view -> {
-//            isSensorStateChange = true;
-//            isSensorOn = !isSensorOn;
-//            try {
-//                sendDataByBluetooth(-1, -1, null, null);
-//            }catch (Exception e){
-//                Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
-//            }
-//        });
-//        automatic.setOnClickListener(view -> {
-//            isSearchingAutomatic = !isSearchingAutomatic;
-//            isSearchingAutomaticStateChange = true;
-//            try {
-//                fragmentManager.beginTransaction()
-//                        .replace(R.id.fragment_container, AnalyzeFragment.class, savedInstanceState)
-//                        .commit();
-//            }catch (Exception e){
-//                Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
-//            }
-//        });
-//
-//        joystick.setOnClickListener(view -> {
-//            isJoystick = !isJoystick;
-//            isJoystickStateChange = true;
-//            try {
-//                fragmentManager.beginTransaction()
-//                        .replace(R.id.fragment_container, JoystickFragment.class, savedInstanceState)
-//                        .commit();
-//            }catch (Exception e){
-//                Toast.makeText(this, R.string.notConnected, Toast.LENGTH_LONG).show();
-//            }
-//        });
-
-
-    bubbleNavigationConstraintView.setNavigationChangeListener((view, position) -> {
-        //navigation changed, do something
-        Log.d("Position", String.valueOf(position));
-        Log.d("Position", String.valueOf(view));
-    });
+                    switchFragment(savedInstanceState, BluetoothFragment.class);
+                    break;
+            }
+        });
 
     }
-
-
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -294,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
                             sendData(LEFT_ROTATE_FORWARDS, 5);
                             return;
                         }
-                        sendData((byte) (fixedStrength), 1);
+                        sendData(fixedStrength, 1);
                     }
 
 
@@ -328,6 +302,16 @@ public class MainActivity extends AppCompatActivity {
             DeviceAdapter.getOutputStream().close();
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void switchFragment(Bundle savedInstanceState, Class<? extends Fragment> fragment){
+        try {
+            fragmentManager.beginTransaction()
+                    .replace(R.id.fragment_container, fragment, savedInstanceState)
+                    .commit();
+        }catch (Exception e){
+            Toast.makeText(this, "Error, something went wrong", Toast.LENGTH_LONG).show();
         }
     }
 }

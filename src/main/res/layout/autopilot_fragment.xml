@@ -5,8 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <com.example.bluetoothcarcontroller.TouchExampleView
-        android:id="@+id/view"
+    <com.example.bluetoothcarcontroller.AutopilotCanvasView
+        android:id="@+id/canvas"
 
         android:layout_width="0dp"
         android:layout_height="0dp"

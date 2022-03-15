@@ -50,13 +50,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.example.bluetoothcarcontroller.Bluetooth.BluetoothActivity"
-
-            android:configChanges="orientation"
-            android:screenOrientation="portrait">
-
-        </activity>
-
     </application>
 
 </manifest>

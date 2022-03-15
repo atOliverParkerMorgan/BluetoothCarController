@@ -35,13 +35,8 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
     Context context;
     List<Device> devices;
 
-
-
     private static OutputStream outputStream;
     public static BluetoothSocket bluetoothSocket;
-
-
-
 
     // View lookup cache
     private static class ViewHolder {
@@ -51,7 +46,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
     }
 
     public DeviceAdapter(@NonNull Context context, ArrayList<Device> devices) {
-        super(context, R.layout.item_device_layout, devices);
+        super(context, R.layout.item_device, devices);
         this.context = context;
         this.devices = devices;
 
@@ -72,7 +67,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
         if (convertView == null) {
 
             LayoutInflater inflater = LayoutInflater.from(getContext());
-            convertView = inflater.inflate(R.layout.item_device_layout, parent, false);
+            convertView = inflater.inflate(R.layout.item_device, parent, false);
             viewHolder.deviceName = convertView.findViewById(R.id.device_name);
             viewHolder.progressBar = convertView.findViewById(R.id.pairProgressBar);
             viewHolder.deviceImage = convertView.findViewById(R.id.device_image);
@@ -177,7 +172,6 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
     public void success(){
         MainActivity.showAlert(context, "Success","You have successfully connected to the bluetooth device.", ()->{
             MainActivity.isConnectedToBluetoothReceiver = true;
-            context.startActivity(new Intent(context, MainActivity.class));
         });
     }
 }

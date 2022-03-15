@@ -39,12 +39,13 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:bt_active="true"
-            app:bt_colorActive="@color/active_dark_red"
+            app:bt_colorActive="@color/active_green"
             app:bt_colorInactive="@color/inactive"
             app:bt_icon="@drawable/ic_baseline_control_camera_24"
             app:bt_title="JoyStick"
             app:bt_padding="10dp"
             app:bt_titlePadding="10dp"
+            app:bt_shape="@drawable/bottom_nav_oval"
  />
         <com.gauravk.bubblenavigation.BubbleToggleView
             android:id="@+id/autopilot_item"
@@ -56,29 +57,31 @@
             app:bt_icon="@drawable/ic_baseline_drive_eta_24"
             app:bt_title="Autopilot"
             app:bt_padding="10dp"
-            app:bt_titlePadding="10dp"/>
+            app:bt_shape="@drawable/bottom_nav_oval"/>
         <com.gauravk.bubblenavigation.BubbleToggleView
             android:id="@+id/sensor_button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:bt_active="false"
-            app:bt_colorActive="@color/active_red"
+            app:bt_colorActive="@color/active_green"
             app:bt_colorInactive="@color/inactive"
             app:bt_icon="@drawable/ic_baseline_visibility_24"
-            app:bt_title="Autopilot"
+            app:bt_title="Sensor"
             app:bt_padding="10dp"
-            app:bt_titlePadding="10dp"/>
+            app:bt_titlePadding="10dp"
+            app:bt_shape="@drawable/bottom_nav_oval"/>
         <com.gauravk.bubblenavigation.BubbleToggleView
             android:id="@+id/bluetooth_item"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:bt_active="false"
-            app:bt_colorActive="@color/active_blue"
+            app:bt_colorActive="@color/active_green"
             app:bt_colorInactive="@color/inactive"
             app:bt_icon="@drawable/ic_baseline_bluetooth_24"
-            app:bt_title="Autopilot"
+            app:bt_title="BlueTooth"
             app:bt_padding="10dp"
-            app:bt_titlePadding="10dp"/>
+            app:bt_titlePadding="10dp"
+            app:bt_shape="@drawable/bottom_nav_oval"/>
 
         <!-- Add more child items here - max upto 5 -->
 

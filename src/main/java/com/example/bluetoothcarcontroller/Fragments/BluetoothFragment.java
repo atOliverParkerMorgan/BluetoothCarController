@@ -1,8 +1,7 @@
-package com.example.bluetoothcarcontroller.Bluetooth;
+package com.example.bluetoothcarcontroller.Fragments;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -20,14 +19,24 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+
+import com.example.bluetoothcarcontroller.Bluetooth.Device;
+import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcarcontroller.MainActivity;
 import com.example.bluetoothcontroler.R;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
-public class BluetoothActivity extends Activity {
+public class BluetoothFragment extends Fragment {
 
 
     int REQUEST_ACCESS_COARSE_LOCATION = 1;
@@ -35,49 +44,66 @@ public class BluetoothActivity extends Activity {
 
     ArrayList<Device> devicesArrayList = new ArrayList<>();
     ListView devicesListView;
-    @SuppressLint("StaticFieldLeak")
+
     public DeviceAdapter deviceAdapter;
     TextView searching;
     ProgressBar searchProgressbar;
-    ImageButton backButton;
 
+    List<BluetoothDevice> shownDevices = new ArrayList<>();
+
+
+    public BluetoothFragment(){
+        super(R.layout.bluetooth_fragment);
+    }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_bluetooth);
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         locationPermissions();
+
+        devicesListView = view.findViewById(R.id.devices);
+        searching  = view.findViewById(R.id.textView);
+        searchProgressbar = view.findViewById(R.id.progressBar);
+
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         MainActivity.isConnectedToBluetoothReceiver = MainActivity.isConnected();
 
-        devicesListView = findViewById(R.id.devices);
-        searching  = findViewById(R.id.textView);
-        searchProgressbar = findViewById(R.id.progressBar);
-
-        deviceAdapter = new DeviceAdapter(this, devicesArrayList);
+        deviceAdapter = new DeviceAdapter(requireContext(), devicesArrayList);
         deviceAdapter.notifyDataSetChanged();
         devicesListView.setAdapter(deviceAdapter);
-        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        backButton = findViewById(R.id.backButton);
-        backButton.setOnClickListener((view)-> startActivity(new Intent(this, MainActivity.class)));
 
-        getPairedDevices();
+        searching.setText(R.string.searching);
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction(BluetoothDevice.ACTION_FOUND);
+        requireActivity().registerReceiver(myReceiver, intentFilter);
+        bluetoothAdapter.startDiscovery();
 
-        //makeDiscoverable();
-        new Thread(this::updatingDevices).start();
+        new Thread(()-> {
+            while (true) {
+                getPairedDevices();
+            }
+        }).start();
+
+
+
+
+
     }
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-    }
 
     public void getPairedDevices() {
         Set<BluetoothDevice> pairedDevice = bluetoothAdapter.getBondedDevices();
-        for (BluetoothDevice bd: pairedDevice)
-            devicesArrayList.add(new Device(bd, true, bd.getName().equals("HC-05")));
-        deviceAdapter.notifyDataSetChanged();
+        for (BluetoothDevice bd: pairedDevice) {
+            final Device device = new Device(bd, true, bd.getName().equals("HC-05"));
+            if(!shownDevices.contains(bd)){
+                shownDevices.add(bd);
+                requireActivity().runOnUiThread(() -> {
+                    devicesArrayList.add(device);
+                    deviceAdapter.notifyDataSetChanged();
+                });
+            }
+        }
     }
 
     private final BroadcastReceiver myReceiver = new BroadcastReceiver() {
@@ -121,34 +147,17 @@ public class BluetoothActivity extends Activity {
         }
     };
 
-
-    private void updatingDevices(){
-        searching.setText(R.string.searching);
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(BluetoothDevice.ACTION_FOUND);
-        bluetoothAdapter.enable();
-        BluetoothActivity.this.registerReceiver(myReceiver, intentFilter);
-        // If we're already discovering, stop it
-        if (bluetoothAdapter.isDiscovering()) {
-            bluetoothAdapter.cancelDiscovery();
-        }
-        // Request discover from BluetoothAdapter
-        bluetoothAdapter.startDiscovery();
-
-
-    }
-
     private void locationPermissions(){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {  // Only ask for these permissions on runtime when running Android 6.0 or higher
-            switch (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            switch (ContextCompat.checkSelfPermission(requireActivity().getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION)) {
                 case PackageManager.PERMISSION_DENIED:
-                    ((TextView) new AlertDialog.Builder(this)
+                    ((TextView) new AlertDialog.Builder(getContext())
                             .setTitle("Runtime Permissions up ahead")
                             .setMessage(Html.fromHtml("<p>To find nearby bluetooth devices please click \"Allow\" on the runtime permissions popup.</p>" +
                                     "<p>For more info see <a href=\"http://developer.android.com/about/versions/marshmallow/android-6.0-changes.html#behavior-hardware-id\">here</a>.</p>"))
                             .setNeutralButton("Okay", (dialog, which) -> {
-                                if (ContextCompat.checkSelfPermission(getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                                    ActivityCompat.requestPermissions(BluetoothActivity.this,
+                                if (ContextCompat.checkSelfPermission(requireActivity().getBaseContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                                    ActivityCompat.requestPermissions(requireActivity(),
                                             new String[]{Manifest.permission.ACCESS_COARSE_LOCATION},
                                             REQUEST_ACCESS_COARSE_LOCATION);
                                 }
@@ -164,8 +173,8 @@ public class BluetoothActivity extends Activity {
     }
 
     @Override
-    protected void onDestroy() {
-        unregisterReceiver(myReceiver);
+    public void onDestroy() {
+        requireActivity().unregisterReceiver(myReceiver);
         super.onDestroy();
     }
 }

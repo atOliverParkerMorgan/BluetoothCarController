@@ -2,7 +2,6 @@ package com.example.bluetoothcarcontroller;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
@@ -11,14 +10,14 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
-import androidx.appcompat.widget.ThemeUtils;
+import androidx.annotation.NonNull;
 
 import com.example.bluetoothcontroler.R;
 
 import java.util.LinkedList;
 import java.util.List;
 
-public class TouchExampleView extends View {
+public class AutopilotCanvasView extends View {
     private final Drawable mCarIcon;
     private final Drawable mPointIcon;
 
@@ -27,8 +26,8 @@ public class TouchExampleView extends View {
     private long currentScrollX = ALLOWED_SCROLL_X/2;
     private long currentScrollY = ALLOWED_SCROLL_Y/2;
 
-    private float mPosX;
-    private float mPosY;
+    public float mPosX;
+    public float mPosY;
 
     private float mLastTouchX;
     private float mLastTouchY;
@@ -43,22 +42,22 @@ public class TouchExampleView extends View {
     // The ‘active pointer’ is the one currently moving our object.
     private int mActivePointerId = INVALID_POINTER_ID;
 
-    public TouchExampleView(Context context) {
+    public AutopilotCanvasView(Context context) {
         this(context, null, 0);
     }
 
-    public TouchExampleView(Context context, AttributeSet attrs) {
+    public AutopilotCanvasView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
     @SuppressLint("UseCompatLoadingForDrawables")
-    public TouchExampleView(Context context, AttributeSet attrs, int defStyle) {
+    public AutopilotCanvasView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         mCarIcon = getContext().getDrawable(R.drawable.ic_baseline_drive_eta_24);
         mCarIcon.setBounds(0, 0, mCarIcon.getIntrinsicWidth(), mCarIcon.getIntrinsicHeight());
 
         mPointIcon = getContext().getDrawable(R.drawable.ic_baseline_circle_24);
-        mPointIcon.setBounds(0, 0, mPointIcon.getIntrinsicWidth()/3, mPointIcon.getIntrinsicHeight()/3);
+        mPointIcon.setBounds(0, 0, mPointIcon.getIntrinsicWidth(), mPointIcon.getIntrinsicHeight());
 
         // Create our ScaleGestureDetector
         mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
@@ -72,7 +71,6 @@ public class TouchExampleView extends View {
 //            addPoint(cords);
 //        }
     }
-
 
 
     @Override
@@ -123,7 +121,7 @@ public class TouchExampleView extends View {
                    for (float[]cords : points) {
                         cords[0] += dx;
                         cords[1] += dy;
-                       invalidate();
+                        invalidate();
                     }
 
 
@@ -197,15 +195,16 @@ public class TouchExampleView extends View {
         }
     }
 
-    public void addPoint(float[] cords){
+    public void addPoint(float[] cords, boolean onMainThread){
         points.add(cords);
-
+        if(onMainThread) invalidate();
+        else postInvalidate();
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
-        this.mPosX = w/2;
-        this.mPosY = h/2;
+        this.mPosX = (float) w/2;
+        this.mPosY = (float) h/2;
         super.onSizeChanged(w, h, oldw, oldh);
     }
 }

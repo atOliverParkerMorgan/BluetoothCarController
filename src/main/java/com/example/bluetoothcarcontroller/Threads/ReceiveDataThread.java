@@ -1,7 +1,6 @@
 package com.example.bluetoothcarcontroller.Threads;
 
 import android.app.Activity;
-import android.content.Context;
 import android.util.Log;
 import android.widget.TextView;
 import android.widget.Toast;

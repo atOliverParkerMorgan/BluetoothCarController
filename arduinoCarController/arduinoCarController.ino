@@ -214,23 +214,32 @@ void goRight(){
 
 void rotateRightByDegrees(int degree){
   // calculate delay
-  setAllMotorStrength(255);
+  setAllMotorStrength(230);
 
-  for(int i = 0; i < degree; i++){
+  int angle = 90;
+  while(angle!=89){
+    int command = Serial.read();
+    if(command==AUTOMATIC_OFF){
+        Serial.write(AUTOMATIC_OFF);
+        break;
+    }
+
     goRight();
-    delay(15);
+    delay(12);
     doStop();
+    String angleOutput = "a"+String(angle)+";";
+    Serial.print(angleOutput);
 
-    distData[i] = calculateDistance();
-    Serial.write(byte(distData[i]));
+    String distanceOutput = "d"+String(calculateDistance())+";";
+    Serial.print(distanceOutput);
 
-    delay(2000);
-
+    angle++;
+    if(angle == 360) angle = 0;
+    delay(300);
   }
 
-
-
-
+  outOfLoop:
+  return;
 }
 
 
@@ -238,7 +247,7 @@ int calculateDistance(){
 
   // resets the trigPin
   digitalWrite(trigPin, LOW);
-  delayMicroseconds(1l);
+  delayMicroseconds(10);
 
   // Sets the trigPin on HIGH state for 10 micro seconds
   digitalWrite(trigPin, HIGH);

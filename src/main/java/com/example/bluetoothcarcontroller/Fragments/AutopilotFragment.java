@@ -40,7 +40,9 @@ public class AutopilotFragment extends Fragment {
         notConnected.setVisibility(!MainActivity.isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
         try {
             try {
-                ReceiveDataThread receiveDataThread = new ReceiveDataThread(DeviceAdapter.bluetoothSocket.getInputStream(), bluetoothInputStreamData, getContext(), view.findViewById(R.id.canvas));
+                ReceiveDataThread receiveDataThread = new ReceiveDataThread(
+                        DeviceAdapter.bluetoothSocket.getInputStream(), bluetoothInputStreamData,
+                        requireActivity(), view.findViewById(R.id.canvas), connected, notConnected);
                 receiveDataThread.start();
             } catch (IOException e) {
                 e.printStackTrace();

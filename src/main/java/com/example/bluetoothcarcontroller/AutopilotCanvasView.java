@@ -14,6 +14,7 @@ import androidx.annotation.NonNull;
 
 import com.example.bluetoothcontroler.R;
 
+import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -57,7 +58,7 @@ public class AutopilotCanvasView extends View {
         mCarIcon.setBounds(0, 0, mCarIcon.getIntrinsicWidth(), mCarIcon.getIntrinsicHeight());
 
         mPointIcon = getContext().getDrawable(R.drawable.ic_baseline_circle_24);
-        mPointIcon.setBounds(0, 0, mPointIcon.getIntrinsicWidth(), mPointIcon.getIntrinsicHeight());
+        mPointIcon.setBounds(0, 0, mPointIcon.getIntrinsicWidth()/2, mPointIcon.getIntrinsicHeight()/2);
 
         // Create our ScaleGestureDetector
         mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
@@ -170,13 +171,17 @@ public class AutopilotCanvasView extends View {
         mCarIcon.draw(canvas);
         canvas.restore();
 
-        for(float[] cord: points){
-            canvas.save();
-            canvas.scale(mScaleFactor, mScaleFactor);
-            canvas.translate(cord[0], cord[1]);
-            mPointIcon.draw(canvas);
-            canvas.restore();
+   ;
+        try {
+            for (float[] cord : points) {
+                canvas.save();
+                canvas.scale(mScaleFactor, mScaleFactor);
+                canvas.translate(cord[0], cord[1]);
+                mPointIcon.draw(canvas);
+                canvas.restore();
+            }
         }
+        catch (ConcurrentModificationException ignored){}
 
     }
 
@@ -195,11 +200,11 @@ public class AutopilotCanvasView extends View {
         }
     }
 
-    public void addPoint(float[] cords, boolean onMainThread){
+    public void addPoint(float[] cords){
         points.add(cords);
-        if(onMainThread) invalidate();
-        else postInvalidate();
+        invalidate();
     }
+
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {

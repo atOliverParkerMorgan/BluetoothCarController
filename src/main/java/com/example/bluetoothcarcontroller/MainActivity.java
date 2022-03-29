@@ -49,8 +49,8 @@ public class MainActivity extends AppCompatActivity {
     private static final byte LEFT_ROTATE_FORWARDS = 6;
     private static final byte SENSOR_ON = 7;
     private static final byte SENSOR_OFF = 8;
-    private static final byte AUTOMATIC_ON = 9;
-    private static final byte AUTOMATIC_OFF = 10;
+    public static final byte AUTOMATIC_ON = 9;
+    public static final byte AUTOMATIC_OFF = 10;
 
 
     private static boolean isSensorStateChange = false;
@@ -71,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int AUTOPILOT_FRAGMENT_POSITION = 1;
     private static final int SENSOR_FRAGMENT_POSITION = 2;
     private static final int BLUETOOTH_FRAGMENT_POSITION = 3;
+
+    private int lastPosition = -1;
 
 
     private static final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
@@ -112,7 +114,16 @@ public class MainActivity extends AppCompatActivity {
         switchFragment(savedInstanceState, JoystickFragment.class);
 
         bubbleNavigationConstraintView.setNavigationChangeListener((view, position) -> {
+            // turnoff auto
+            if(lastPosition == AUTOPILOT_FRAGMENT_POSITION) {
+                try {
+                    sendData(AUTOMATIC_OFF, 5);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
             //navigation changed, do something
+            lastPosition = position;
             switch (position){
                 case JOYSTICK_FRAGMENT_POSITION:
                     switchFragment(savedInstanceState, JoystickFragment.class);
@@ -192,23 +203,29 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public static boolean isConnected(TextView connected, TextView notConnected){
+        try {
+            OutputStream outputStream = DeviceAdapter.getOutputStream();
+            outputStream.write(NULL_MESSAGE);
+
+            return true;
+
+        }catch (Exception e){
+            isConnectedToBluetoothReceiver = false;
+            mainHandler.post(()->{
+                if(connected != null && notConnected != null) {
+                    connected.setVisibility(View.INVISIBLE);
+                    notConnected.setVisibility(View.VISIBLE);
+                }
+            });
+            return false;
+        }
+    }
+
     public synchronized static void sendDataByBluetooth(int angle, int strength, @Nullable TextView connected, @Nullable TextView notConnected){
         try {
             byte normalizedStrength = (byte) (strength * ONE_PERCENT_OF_STRENGTH);
-
-
-            if(isSensorStateChange){
-                byte state = isSensorOn? SENSOR_ON: SENSOR_OFF;
-                sendData(state, 5);
-                isSensorStateChange = false;
-            }
-            else if(isSearchingAutomaticStateChange){
-                byte state = isSearchingAutomatic? AUTOMATIC_ON: AUTOMATIC_OFF;
-                sendData(state, 5);
-                isSearchingAutomaticStateChange = false;
-            }
-
-            else if(strength<=10){
+            if(strength<=10){
                if(CURRENT_STATE != STOP){
                    CURRENT_STATE = STOP;
                    sendData(STOP, 5);
@@ -288,7 +305,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    static void sendData(byte data, int numberOfTimesToSendData) throws IOException{
+   public static void sendData(byte data, int numberOfTimesToSendData) throws IOException{
         for (int i = 0; i < numberOfTimesToSendData; i++) {
             if(numberOfTimesToSendData>1) System.out.println(data);
             DeviceAdapter.getOutputStream().write(data);

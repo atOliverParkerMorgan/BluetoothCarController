@@ -49,6 +49,8 @@ public class BluetoothFragment extends Fragment {
     TextView searching;
     ProgressBar searchProgressbar;
 
+
+
     List<BluetoothDevice> shownDevices = new ArrayList<>();
 
 

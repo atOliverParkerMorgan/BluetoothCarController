@@ -1,85 +1,139 @@
 package com.example.bluetoothcarcontroller.Threads;
 
+import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcarcontroller.AutopilotCanvasView;
+import com.example.bluetoothcarcontroller.MainActivity;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
 public class ReceiveDataThread extends Thread {
-    InputStream inputStream;
-    List<Integer> extractedData;
-    Context context;
-    AutopilotCanvasView autopilotCanvasView;
+    private final InputStream inputStream;
+    private final List<Integer> extractedData;
+    private final Activity activity;
+    private final AutopilotCanvasView autopilotCanvasView;
+    private final TextView connected;
+    private final TextView notConnected;
 
-    public ReceiveDataThread(InputStream inputStream, List<Integer> extractedData, Context context, AutopilotCanvasView autopilotCanvasView) {
+
+    public ReceiveDataThread(InputStream inputStream, List<Integer> extractedData, Activity activity,
+                             AutopilotCanvasView autopilotCanvasView, TextView connected,
+                             TextView notConnected) {
         this.inputStream = inputStream;
         this.extractedData = extractedData;
-        this.context = context;
+        this.activity = activity;
         this.autopilotCanvasView = autopilotCanvasView;
+        this.connected = connected;
+        this.notConnected = notConnected;
     }
 
     @Override
     public void run() {
+        boolean receivingAngle = false;
+        boolean receivingDist = false;
 
         try {
-            int angle = 0;
+            StringBuilder angleStringValue = new StringBuilder();
+            StringBuilder distStringValue = new StringBuilder();
+            int lastAngle = 89;
+
+
             while (DeviceAdapter.bluetoothSocket.isConnected()) {
                 if (Thread.currentThread().isInterrupted()) {
                     break;
                 }
-
                 if(inputStream.available()>0) {
+                    char data = (char) inputStream.read();
+                    Log.d("data:", String.valueOf(data));
+                    if (receivingAngle && data != ';') angleStringValue.append(data);
+                    else if (receivingDist && data != ';') distStringValue.append(data);
 
-                    int dist = inputStream.read();
+                    if (data == 'a') {
+                        receivingAngle = true;
+                        receivingDist = false;
+                    }
+                    else if (data == 'd') {
+                        receivingDist = true;
+                        receivingAngle = false;
+                    }
+                    else if (data == ';') {
+                        receivingAngle = false;
+                        receivingDist = false;
 
-                    Log.d("Dist:", String.valueOf(dist));
-                    angle+=10;
-                    // calculating found point
-                    // known: distance of the two points; angle; x2, y2
-                    // unknown: x, y of point
-                    // substitution:
-                    // x = x1-x2; y = y1-y2
-                    // equations:
+                        int angle = Integer.parseInt(angleStringValue.toString());
+                        int dist = Integer.parseInt(distStringValue.toString());
+
+                        angleStringValue = new StringBuilder();
+                        distStringValue = new StringBuilder();
+
+                        // used when getting second answer
+                        if (lastAngle + 1 == angle) lastAngle = angle;
+                        else MainActivity.sendData(MainActivity.AUTOMATIC_OFF, 1);
+
+                        // calculating found point
+                        // known: distance of the two points; angle; x2, y2 (cords of car)
+                        // unknown: x, y (cords of point)
+                        // substitution:
+                        // x = x1-x2; y = y1-y2
+                        // equations:
 
 
-                    // dist**2 = ((x1-x2)**2+(y1-y2)**2)
+                        // dist**2 = ((x1-x2)**2+(y1-y2)**2)
 
 
-                    // x = (dist**2-y1**2)**0.5
-                    // y = tg(angle)x1
+                        // x = (dist**2-y1**2)**0.5
+                        // y = tg(angle)x1
 
-                    // x**2 = (dist**2 - tg(angle)**2 * x**2)
-                    // x**2 + tg(angle)**2 * x**2 - dist**2 = 0
-                    // x**2 * (1 + tg(angle)**2) - dist**2 = 0
-                    // x = (+- (4 * dist**2 * (1 + tg(angle)**2)) ** 0.5 ) / (2*(1 + tg(angle)**2))
+                        // solving for x
 
-                    double a = 1 + Math.pow(Math.tan(Math.toRadians(angle)), 2);
-                    double c = -Math.pow(dist, 2);
-                    double D = -4 * a * c;
+                        // x**2 = (dist**2 - tg(angle)**2 * x**2)
+                        // x**2 + tg(angle)**2 * x**2 - dist**2 = 0
+                        // x**2 * (1 + tg(angle)**2) - dist**2 = 0
+                        // x = (+- (4 * dist**2 * (1 + tg(angle)**2)) ** 0.5 ) / (2*(1 + tg(angle)**2))
 
-                    double x = ( Math.sqrt(D)) / (2 * a);
+                        double a = 1 + Math.pow(Math.tan(Math.toRadians(angle)), 2);
+                        double c = -Math.pow(dist, 2);
+                        double D = -4 * a * c;
 
-                    double y = Math.tan(Math.toRadians(angle)) * x;
+                        double x = (Math.sqrt(D)) / (2 * a);
 
-                    float x1 = (float) (x + autopilotCanvasView.mPosX);
-                    float y1 = (float) (y + autopilotCanvasView.mPosY);
+                        // get second answer from (+-) if angle is in given quadrant
+                        if (angle > 270 || angle < 90) x = -x;
 
-                    Log.d("received: X; Y:", x1+"; "+y1);
+                        double y = Math.tan(Math.toRadians(angle)) * x;
 
-                    autopilotCanvasView.addPoint(new float[]{x1, y1}, false);
+                        float x1 = (float) (x + autopilotCanvasView.mPosX);
+                        float y1 = (float) (y + autopilotCanvasView.mPosY);
+
+                        Log.d("Dist: ", String.valueOf(dist));
+                        Log.d("angle: ", String.valueOf(angle));
+
+                        autopilotCanvasView.addPoint(new float[]{x1, y1});
+
+                        if (!MainActivity.isConnected(connected, notConnected)) {
+                            activity.runOnUiThread(() -> Toast.makeText(activity, "Error, connection lost", Toast.LENGTH_LONG).show());
+                            break;
+                        }
+                    }
 
                 }
             }
             Log.d("BLUETOOTH DATA all: ", extractedData.toString());
         } catch (IOException e) {
             Log.d("Error: ", extractedData.toString());
-            Toast.makeText(context, "Error, bluetooth not working", Toast.LENGTH_LONG).show();
+            try {
+                MainActivity.sendData(MainActivity.AUTOMATIC_OFF, 1);
+            } catch (IOException ioException) {
+                ioException.printStackTrace();
+            }
+            activity.runOnUiThread(()->Toast.makeText(activity, "Error, bluetooth not working", Toast.LENGTH_LONG).show());
         }
     }
 

@@ -214,27 +214,24 @@ void goRight(){
 
 void rotateRightByDegrees(int degree){
   // calculate delay
-  setAllMotorStrength(230);
+  setAllMotorStrength(243);
 
-  int angle = 90;
-  while(angle!=89){
+  int angle = 0;
+  while(angle < 360){
     int command = Serial.read();
     if(command==AUTOMATIC_OFF){
         Serial.write(AUTOMATIC_OFF);
+        doStop();
         break;
     }
 
     goRight();
-    delay(12);
+    delay(10);
     doStop();
-    String angleOutput = "a"+String(angle)+";";
-    Serial.print(angleOutput);
 
-    String distanceOutput = "d"+String(calculateDistance())+";";
-    Serial.print(distanceOutput);
+    Serial.write(byte(calculateDistance()));
 
     angle++;
-    if(angle == 360) angle = 0;
     delay(300);
   }
 

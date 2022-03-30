@@ -83,12 +83,7 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
 
             convertView.setOnClickListener((view) -> {
                 finalViewHolder.progressBar.setVisibility(View.VISIBLE);
-
-                if(!device.isHCO5()) {
-                    notHC05();
-                }else {
-                    connect(device.getDevice(), finalViewHolder, finalConvertView);
-                }
+                connect(device.getDevice(), finalViewHolder, finalConvertView);
 
             });
 

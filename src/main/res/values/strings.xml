@@ -5,4 +5,8 @@
     <string name="notConnected">Not connected</string>
     <string name="nothingFound">nothing found</string>
     <string name="backButtonDescription">Go back to main activity</string>
+    <string name="terminate">Terminate search</string>
+    <string name="autoBreak">Automatic breaks in front of obstacle</string>
+    <string name="breakDist">distance to activate break distance (in cm)</string>
+    <string name="update">Update data</string>
 </resources>

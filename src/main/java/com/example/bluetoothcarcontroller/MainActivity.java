@@ -26,6 +26,7 @@ import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcarcontroller.Fragments.AutopilotFragment;
 import com.example.bluetoothcarcontroller.Fragments.BluetoothFragment;
 import com.example.bluetoothcarcontroller.Fragments.JoystickFragment;
+import com.example.bluetoothcarcontroller.Fragments.SensorFragment;
 import com.example.bluetoothcontroler.R;
 import com.gauravk.bubblenavigation.BubbleNavigationConstraintView;
 
@@ -39,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private static final byte NULL_MESSAGE = -1;
 
     // Arduino car commands
-    private static final byte STOP = 0;
+    public static final byte STOP = 0;
     private static byte CURRENT_STATE = STOP;
     private static final byte FORWARD = 1;
     private static final byte BACKWARD = 2;
@@ -47,8 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private static final byte LEFT_ROTATE_BACKWARDS = 4;
     private static final byte RIGHT_ROTATE_FORWARDS = 5;
     private static final byte LEFT_ROTATE_FORWARDS = 6;
-    private static final byte SENSOR_ON = 7;
-    private static final byte SENSOR_OFF = 8;
+    public static final byte SENSOR_ON = 7;
+    public static final byte SENSOR_OFF = 8;
     public static final byte AUTOMATIC_ON = 9;
     public static final byte AUTOMATIC_OFF = 10;
 
@@ -137,15 +138,10 @@ public class MainActivity extends AppCompatActivity {
                     switchFragment(savedInstanceState, AutopilotFragment.class);
                     break;
                 case SENSOR_FRAGMENT_POSITION:
-                    try {
-                        sendData(SENSOR_ON, 5);
-                    } catch (Exception e) {
-                        Toast.makeText(this, "Error, no connection. Try to connect via Bluetooth", Toast.LENGTH_LONG).show();
-                    }
+                    switchFragment(savedInstanceState, SensorFragment.class);
                     break;
                 case BLUETOOTH_FRAGMENT_POSITION:
                     BluetoothAdapter.getDefaultAdapter().enable();
-
                     switchFragment(savedInstanceState, BluetoothFragment.class);
                     break;
             }

@@ -11,6 +11,7 @@ import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcarcontroller.MainActivity;
 import com.example.bluetoothcontroler.R;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -30,6 +31,13 @@ public class JoystickFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        if(MainActivity.isConnected()) {
+            try {
+                MainActivity.sendData(MainActivity.STOP, 5);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
         // init
         executorService = Executors.newSingleThreadExecutor();
@@ -48,5 +56,6 @@ public class JoystickFragment extends Fragment {
                 executorService.submit(()-> MainActivity.sendDataByBluetooth(angle, strength, connected, notConnected));
             }
         });
+
     }
 }

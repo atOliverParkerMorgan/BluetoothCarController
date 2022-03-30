@@ -30,6 +30,8 @@ import com.example.bluetoothcarcontroller.Bluetooth.Device;
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcarcontroller.MainActivity;
 import com.example.bluetoothcontroler.R;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,18 +51,29 @@ public class BluetoothFragment extends Fragment {
     TextView searching;
     ProgressBar searchProgressbar;
 
-
-
     List<BluetoothDevice> shownDevices = new ArrayList<>();
-
 
     public BluetoothFragment(){
         super(R.layout.bluetooth_fragment);
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        if(MainActivity.isConnected()) {
+            try {
+                MainActivity.sendData(MainActivity.STOP, 5);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+
         locationPermissions();
 
         devicesListView = view.findViewById(R.id.devices);
@@ -70,6 +83,13 @@ public class BluetoothFragment extends Fragment {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
         MainActivity.isConnectedToBluetoothReceiver = MainActivity.isConnected();
+        if( MainActivity.isConnectedToBluetoothReceiver) {
+            try {
+                MainActivity.sendData(MainActivity.STOP, 5);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
         deviceAdapter = new DeviceAdapter(requireContext(), devicesArrayList);
         deviceAdapter.notifyDataSetChanged();
@@ -86,10 +106,6 @@ public class BluetoothFragment extends Fragment {
                 getPairedDevices();
             }
         }).start();
-
-
-
-
 
     }
 

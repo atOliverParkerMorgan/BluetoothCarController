@@ -32,6 +32,14 @@ public class AutopilotFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if(MainActivity.isConnected()) {
+            try {
+                MainActivity.sendData(MainActivity.STOP, 5);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
 
         // init connect text
         connected = view.findViewById(R.id.connected);

@@ -5,22 +5,19 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.bluetoothcarcontroller.MainActivity;
 import com.example.bluetoothcontroler.R;
 
-import java.io.IOException;
-
 public class SensorFragment extends Fragment {
-    private Switch switchSensor;
+    private SwitchCompat switchSensor;
     private TextView distText;
     private EditText distEditText;
     private Button updateDataButton;
@@ -51,9 +48,7 @@ public class SensorFragment extends Fragment {
 
         updateInputs();
 
-        switchSensor.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            updateInputs();
-        });
+        switchSensor.setOnCheckedChangeListener((buttonView, isChecked) -> updateInputs());
 
         updateDataButton.setOnClickListener(v -> {
             try {

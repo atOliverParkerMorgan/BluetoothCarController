@@ -7,6 +7,7 @@ import android.widget.Toast;
 
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcarcontroller.AutopilotCanvasView;
+import com.example.bluetoothcarcontroller.Fragments.BluetoothFragment;
 import com.example.bluetoothcarcontroller.MainActivity;
 
 import java.io.IOException;
@@ -103,7 +104,6 @@ public class ReceiveDataThread extends Thread {
             }
             Log.d("BLUETOOTH DATA all: ", extractedData.toString());
         } catch (IOException e) {
-            Log.d("Error: ", extractedData.toString());
             try {
                 MainActivity.sendData(MainActivity.AUTOMATIC_OFF, 1);
             } catch (IOException ioException) {

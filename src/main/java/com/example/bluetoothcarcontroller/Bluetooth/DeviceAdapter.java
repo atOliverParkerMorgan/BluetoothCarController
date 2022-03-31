@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Build;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -157,15 +156,15 @@ public class DeviceAdapter extends ArrayAdapter <Device > {
     }
 
     public void notHC05(){
-        MainActivity.showAlert(context, "Oops","The device you have chosen is not named HC-05. HC-05 is the bluetooth receiver that this app uses.", ()->{});
+        MainActivity.showAlert(context, "Oops","The device you have chosen is not named HC-05. HC-05 is the bluetooth receiver that this app uses.", "Ok", ()->{});
     }
 
     public void connectionError(){
 
-        ((Activity) context).runOnUiThread(()-> MainActivity.showAlert(context, "Oops","Failed to connect to device", ()->{}));
+        ((Activity) context).runOnUiThread(()-> MainActivity.showAlert(context, "Oops","Failed to connect to device","Ok", ()->{}));
     }
     public void success(){
-        MainActivity.showAlert(context, "Success","You have successfully connected to the bluetooth device.", ()->{
+        MainActivity.showAlert(context, "Success","You have successfully connected to the bluetooth device.", "OK", ()->{
             MainActivity.isConnectedToBluetoothReceiver = true;
         });
     }

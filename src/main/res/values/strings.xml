@@ -9,4 +9,5 @@
     <string name="autoBreak">Automatic breaks in front of obstacle</string>
     <string name="breakDist">distance to activate break distance (in cm)</string>
     <string name="update">Update data</string>
+    <string name="start">Start search</string>
 </resources>

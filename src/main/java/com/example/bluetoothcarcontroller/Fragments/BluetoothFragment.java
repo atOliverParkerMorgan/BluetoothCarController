@@ -63,8 +63,7 @@ public class BluetoothFragment extends Fragment {
         if(MainActivity.isConnected()) {
             try {
                 MainActivity.sendData(MainActivity.STOP, 5);
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
             }
         }
     }
@@ -86,8 +85,10 @@ public class BluetoothFragment extends Fragment {
         if( MainActivity.isConnectedToBluetoothReceiver) {
             try {
                 MainActivity.sendData(MainActivity.STOP, 5);
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (Exception e) {
+                MainActivity.showAlert(getContext(), "Error","You don't have a bluetooth connection with your car.", "Connect", ()->{
+                    MainActivity.switchFragment(savedInstanceState, BluetoothFragment.class, getContext());
+                });
             }
         }
 

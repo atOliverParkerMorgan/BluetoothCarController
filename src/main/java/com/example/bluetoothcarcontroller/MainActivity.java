@@ -54,12 +54,6 @@ public class MainActivity extends AppCompatActivity {
     public static final byte AUTOMATIC_OFF = 10;
 
 
-    private static boolean isSensorStateChange = false;
-    private static boolean isSensorOn = false;
-    private static boolean isSearchingAutomatic = false;
-    private static boolean isSearchingAutomaticStateChange = false;
-
-
     public static boolean isConnectedToBluetoothReceiver = false;
     public static BluetoothDevice connectedDevice = null;
 
@@ -78,8 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
 
-    private BubbleNavigationConstraintView bubbleNavigationConstraintView;
-    private FragmentManager fragmentManager;
+    private static FragmentManager fragmentManager;
 
 
     @Override
@@ -100,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        bubbleNavigationConstraintView = findViewById(R.id.bottom_navigation_constraint);
+        BubbleNavigationConstraintView bubbleNavigationConstraintView = findViewById(R.id.bottom_navigation_constraint);
 
         // to update GUI from threads
         mainHandler = new Handler(this.getMainLooper());
@@ -112,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
         isConnectedToBluetoothReceiver = isConnected();
 
         fragmentManager = getSupportFragmentManager();
-        switchFragment(savedInstanceState, JoystickFragment.class);
+        switchFragment(savedInstanceState, JoystickFragment.class, this);
 
         bubbleNavigationConstraintView.setNavigationChangeListener((view, position) -> {
             // turnoff auto
@@ -120,29 +113,26 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     sendData(AUTOMATIC_OFF, 5);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    MainActivity.showAlert(this, "Error","You don't have a bluetooth connection with your car.", "Connect", ()->{
+                        MainActivity.switchFragment(savedInstanceState, BluetoothFragment.class, this);
+                    });
                 }
             }
             //navigation changed, do something
             lastPosition = position;
             switch (position){
                 case JOYSTICK_FRAGMENT_POSITION:
-                    switchFragment(savedInstanceState, JoystickFragment.class);
+                    switchFragment(savedInstanceState, JoystickFragment.class, this);
                     break;
                 case AUTOPILOT_FRAGMENT_POSITION:
-                    try {
-                        sendData(AUTOMATIC_ON, 5);
-                    } catch (Exception e) {
-                        Toast.makeText(this, "Error, no connection. Try to connect via Bluetooth", Toast.LENGTH_LONG).show();
-                    }
-                    switchFragment(savedInstanceState, AutopilotFragment.class);
+                    switchFragment(savedInstanceState, AutopilotFragment.class, this);
                     break;
                 case SENSOR_FRAGMENT_POSITION:
-                    switchFragment(savedInstanceState, SensorFragment.class);
+                    switchFragment(savedInstanceState, SensorFragment.class, this);
                     break;
                 case BLUETOOTH_FRAGMENT_POSITION:
                     BluetoothAdapter.getDefaultAdapter().enable();
-                    switchFragment(savedInstanceState, BluetoothFragment.class);
+                    switchFragment(savedInstanceState, BluetoothFragment.class, this);
                     break;
             }
         });
@@ -175,11 +165,11 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-    public static void showAlert(Context context, String message, String text, Runnable action){
+    public static void showAlert(Context context, String message, String text, String conformationText, Runnable action){
         AlertDialog.Builder alert = new AlertDialog.Builder(context);
         alert.setTitle(message);
         alert.setMessage(text);
-        alert.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+        alert.setPositiveButton(conformationText, (dialog, which) -> {
             dialog.cancel();
             action.run();
         });
@@ -318,13 +308,13 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void switchFragment(Bundle savedInstanceState, Class<? extends Fragment> fragment){
+    public static void switchFragment(Bundle savedInstanceState, Class<? extends Fragment> fragment, Context context){
         try {
             fragmentManager.beginTransaction()
                     .replace(R.id.fragment_container, fragment, savedInstanceState)
                     .commit();
         }catch (Exception e){
-            Toast.makeText(this, "Error, something went wrong", Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "Error, something went wrong", Toast.LENGTH_LONG).show();
         }
     }
 }

@@ -6,8 +6,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
-import com.example.bluetoothcarcontroller.AutopilotCanvasView;
-import com.example.bluetoothcarcontroller.Fragments.BluetoothFragment;
+import com.example.bluetoothcarcontroller.Canvas.AutopilotCanvasView;
 import com.example.bluetoothcarcontroller.MainActivity;
 
 import java.io.IOException;
@@ -104,11 +103,8 @@ public class ReceiveDataThread extends Thread {
             }
             Log.d("BLUETOOTH DATA all: ", extractedData.toString());
         } catch (IOException e) {
-            try {
-                MainActivity.sendData(MainActivity.AUTOMATIC_OFF, 1);
-            } catch (IOException ioException) {
-                ioException.printStackTrace();
-            }
+            MainActivity.sendData(MainActivity.AUTOMATIC_OFF, 1, null, null);
+
             activity.runOnUiThread(()->Toast.makeText(activity, "Error, bluetooth not working", Toast.LENGTH_LONG).show());
         }
     }

@@ -49,7 +49,7 @@ const int AUTOMATIC_OFF = 10;
 const int echoPin = 2;
 const int trigPin = 13;
 
-const int MIN_DISTANCE_IN_CENTIMETERS = 10;
+int breakingDistanceInCentimetrs = 10;
 
 const long rotateDelayConstant = 100;
 
@@ -91,6 +91,9 @@ void loop(){
         numberOfChangeStateReads = 0;
       }else if(data == SENSOR_ON){
         isSensorOn = true;
+        while(Serial.available() <= 0)
+        breakingDistanceInCentimetrs = Serial.read();
+
         numberOfChangeStateReads = 0;
       }else if(data == SENSOR_OFF){
         isSensorOn = false;
@@ -118,7 +121,7 @@ void loop(){
 
     case FORWARD_:
       if(isSensorOn){
-        if(calculateDistance() > MIN_DISTANCE_IN_CENTIMETERS){
+        if(calculateDistance() > breakingDistanceInCentimetrs){
           setAllMotorStrength(data);
           goForward();
         }
@@ -214,7 +217,7 @@ void goRight(){
 
 void rotateRightByDegrees(int degree){
   // calculate delay
-  setAllMotorStrength(243);
+  setAllMotorStrength(250);
 
   int angle = 0;
   while(angle < 360){

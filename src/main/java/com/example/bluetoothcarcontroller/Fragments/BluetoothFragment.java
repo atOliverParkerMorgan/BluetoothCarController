@@ -1,7 +1,6 @@
 package com.example.bluetoothcarcontroller.Fragments;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -15,43 +14,37 @@ import android.os.Bundle;
 import android.text.Html;
 import android.text.method.LinkMovementMethod;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-
 import com.example.bluetoothcarcontroller.Bluetooth.Device;
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcarcontroller.MainActivity;
 import com.example.bluetoothcontroler.R;
-
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 public class BluetoothFragment extends Fragment {
 
-
     int REQUEST_ACCESS_COARSE_LOCATION = 1;
+
+    public DeviceAdapter deviceAdapter;
     BluetoothAdapter bluetoothAdapter;
 
     ArrayList<Device> devicesArrayList = new ArrayList<>();
     ListView devicesListView;
+    List<BluetoothDevice> shownDevices = new ArrayList<>();
 
-    public DeviceAdapter deviceAdapter;
     TextView searching;
     ProgressBar searchProgressbar;
 
-    List<BluetoothDevice> shownDevices = new ArrayList<>();
+
 
     public BluetoothFragment(){
         super(R.layout.bluetooth_fragment);
@@ -60,18 +53,13 @@ public class BluetoothFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if(MainActivity.isConnected()) {
-            try {
-                MainActivity.sendData(MainActivity.STOP, 5);
-            } catch (Exception e) {
-            }
-        }
+
+        MainActivity.sendData(MainActivity.STOP, 5, null, null);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
 
         locationPermissions();
 
@@ -84,11 +72,8 @@ public class BluetoothFragment extends Fragment {
         MainActivity.isConnectedToBluetoothReceiver = MainActivity.isConnected();
         if( MainActivity.isConnectedToBluetoothReceiver) {
             try {
-                MainActivity.sendData(MainActivity.STOP, 5);
-            } catch (Exception e) {
-                MainActivity.showAlert(getContext(), "Error","You don't have a bluetooth connection with your car.", "Connect", ()->{
-                    MainActivity.switchFragment(savedInstanceState, BluetoothFragment.class, getContext());
-                });
+                MainActivity.sendData(MainActivity.STOP, 5, null, null);
+            } catch (Exception ignored) {
             }
         }
 
@@ -183,7 +168,7 @@ public class BluetoothFragment extends Fragment {
                             })
                             .show()
                             .findViewById(android.R.id.message))
-                            .setMovementMethod(LinkMovementMethod.getInstance());       // Make the link clickable. Needs to be called after show(), in order to generate hyperlinks
+                            .setMovementMethod(LinkMovementMethod.getInstance()); // Make the link clickable. Needs to be called after show(), in order to generate hyperlinks
                     break;
                 case PackageManager.PERMISSION_GRANTED:
                     break;

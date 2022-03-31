@@ -65,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int JOYSTICK_FRAGMENT_POSITION = 0;
     private static final int AUTOPILOT_FRAGMENT_POSITION = 1;
     private static final int SENSOR_FRAGMENT_POSITION = 2;
-    private static final int BLUETOOTH_FRAGMENT_POSITION = 3;
+    public static final int BLUETOOTH_FRAGMENT_POSITION = 3;
 
     private int lastPosition = -1;
 
@@ -73,14 +73,20 @@ public class MainActivity extends AppCompatActivity {
     private static final float ONE_PERCENT_OF_STRENGTH = (float)(MAX_STRENGTH - MIN_STRENGTH) / 100;
 
     private static FragmentManager fragmentManager;
+    public static BubbleNavigationConstraintView bubbleNavigationConstraintView;
 
 
     @Override
     protected void onResume() {
         super.onResume();
+
         TextView connected = findViewById(R.id.connected);
         TextView notConnected = findViewById(R.id.notConnected);
+
         isConnectedToBluetoothReceiver = isConnected();
+
+        sendData(STOP, 5, connected, notConnected);
+
         connected.setVisibility(isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
         notConnected.setVisibility(!isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
 
@@ -93,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        BubbleNavigationConstraintView bubbleNavigationConstraintView = findViewById(R.id.bottom_navigation_constraint);
+        bubbleNavigationConstraintView = findViewById(R.id.bottom_navigation_constraint);
 
         // to update GUI from threads
         mainHandler = new Handler(this.getMainLooper());
@@ -110,13 +116,7 @@ public class MainActivity extends AppCompatActivity {
         bubbleNavigationConstraintView.setNavigationChangeListener((view, position) -> {
             // turnoff auto
             if(lastPosition == AUTOPILOT_FRAGMENT_POSITION) {
-                try {
-                    sendData(AUTOMATIC_OFF, 5);
-                } catch (Exception e) {
-                    MainActivity.showAlert(this, "Error","You don't have a bluetooth connection with your car.", "Connect", ()->{
-                        MainActivity.switchFragment(savedInstanceState, BluetoothFragment.class, this);
-                    });
-                }
+                sendData(AUTOMATIC_OFF, 5, null, null);
             }
             //navigation changed, do something
             lastPosition = position;
@@ -181,11 +181,13 @@ public class MainActivity extends AppCompatActivity {
         try {
             OutputStream outputStream = DeviceAdapter.getOutputStream();
             outputStream.write(NULL_MESSAGE);
-
+            isConnectedToBluetoothReceiver = true;
             return true;
 
         }catch (Exception e){
+            isConnectedToBluetoothReceiver = false;
             return false;
+
         }
     }
 
@@ -193,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             OutputStream outputStream = DeviceAdapter.getOutputStream();
             outputStream.write(NULL_MESSAGE);
+            isConnectedToBluetoothReceiver = true;
 
             return true;
 
@@ -208,29 +211,35 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * this function is used to send data from the in app joystick to the car
+     * @param angle - angle of the joystick
+     * @param strength - strength of the joystick
+     * @param connected - @see sendData()
+     * @param notConnected - @see sendData()
+     */
     public synchronized static void sendDataByBluetooth(int angle, int strength, @Nullable TextView connected, @Nullable TextView notConnected){
-        try {
             byte normalizedStrength = (byte) (strength * ONE_PERCENT_OF_STRENGTH);
             if(strength<=10){
                if(CURRENT_STATE != STOP){
                    CURRENT_STATE = STOP;
-                   sendData(STOP, 5);
+                   sendData(STOP, 5, connected, notConnected);
                }
 
             }else if(angle>75 && angle < 115){
                 if(CURRENT_STATE != FORWARD){
                     CURRENT_STATE = FORWARD;
-                    sendData(FORWARD, 5);
+                    sendData(FORWARD, 5, connected, notConnected);
                 }else {
-                    sendData(normalizedStrength, 1);
+                    sendData(normalizedStrength, 1, connected, notConnected);
                 }
 
             }else if(angle>255 && angle < 295) {
                 if(CURRENT_STATE != BACKWARD){
                     CURRENT_STATE = BACKWARD;
-                    sendData(BACKWARD, 5);
+                    sendData(BACKWARD, 5, connected, notConnected);
                 }else {
-                    sendData(normalizedStrength, 1);
+                    sendData(normalizedStrength, 1, connected, notConnected);
                 }
             }else {
                 Log.d("STRENGTH: ", String.valueOf(strength));
@@ -244,57 +253,66 @@ public class MainActivity extends AppCompatActivity {
                     if(goBackward){
                         if(CURRENT_STATE!=RIGHT_ROTATE_BACKWARDS){
                             CURRENT_STATE = RIGHT_ROTATE_BACKWARDS;
-                            sendData(RIGHT_ROTATE_BACKWARDS, 5);
+                            sendData(RIGHT_ROTATE_BACKWARDS, 5, connected, notConnected);
                             return;
                         }
                     }else {
                         if(CURRENT_STATE!=RIGHT_ROTATE_FORWARDS){
                             CURRENT_STATE = RIGHT_ROTATE_FORWARDS;
-                            sendData(RIGHT_ROTATE_FORWARDS, 5);
+                            sendData(RIGHT_ROTATE_FORWARDS, 5, connected, notConnected);
                             return;
                         }
                     }
-                    sendData(fixedStrength, 1);
 
                 }else {
                     // left
                     if(goBackward){
                         if(CURRENT_STATE!=LEFT_ROTATE_BACKWARDS){
                             CURRENT_STATE = LEFT_ROTATE_BACKWARDS;
-                            sendData(LEFT_ROTATE_BACKWARDS, 5);
+                            sendData(LEFT_ROTATE_BACKWARDS, 5, connected, notConnected);
                             return;
                         }
-                        sendData(fixedStrength, 1);
                     }else {
                         if(CURRENT_STATE!=LEFT_ROTATE_FORWARDS){
                             CURRENT_STATE = LEFT_ROTATE_FORWARDS;
-                            sendData(LEFT_ROTATE_FORWARDS, 5);
+                            sendData(LEFT_ROTATE_FORWARDS, 5, connected, notConnected);
                             return;
                         }
-                        sendData(fixedStrength, 1);
                     }
 
 
                 }
+                sendData(fixedStrength, 1, connected, notConnected);
             }
 
 
-        } catch (IOException e) {
-            isConnectedToBluetoothReceiver = false;
-            mainHandler.post(()->{
-                if(connected != null && notConnected != null) {
-                    connected.setVisibility(View.INVISIBLE);
-                    notConnected.setVisibility(View.VISIBLE);
-                }
-            });
-
-        }
     }
 
-   public static void sendData(byte data, int numberOfTimesToSendData) throws IOException{
-        for (int i = 0; i < numberOfTimesToSendData; i++) {
-            if(numberOfTimesToSendData>1) System.out.println(data);
-            DeviceAdapter.getOutputStream().write(data);
+    /**
+     * send data in bytes to car via bluetoothOutputStream
+     *
+     * @param data - data to send
+     * @param numberOfTimesToSendData - number of times to send data
+     * @param connected - a textView that the function uses to indicate whether the process was successful
+     * @param notConnected - a textView that the function uses to indicate whether the process failed
+    */
+   public static void sendData(byte data, int numberOfTimesToSendData, @Nullable TextView connected, @Nullable TextView notConnected){
+
+        if(isConnected()) {
+            for (int i = 0; i < numberOfTimesToSendData; i++) {
+                if (numberOfTimesToSendData > 1) System.out.println(data);
+                try {
+                    DeviceAdapter.getOutputStream().write(data);
+                } catch (Exception e) {
+                    isConnectedToBluetoothReceiver = false;
+                    mainHandler.post(()->{
+                        if(connected != null && notConnected != null) {
+                            connected.setVisibility(View.INVISIBLE);
+                            notConnected.setVisibility(View.VISIBLE);
+                        }
+                    });
+                }
+            }
         }
     }
 

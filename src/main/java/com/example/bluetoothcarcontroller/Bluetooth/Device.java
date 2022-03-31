@@ -1,7 +1,6 @@
 package com.example.bluetoothcarcontroller.Bluetooth;
 
 import android.bluetooth.BluetoothDevice;
-
 import java.util.Objects;
 
 public class Device {
@@ -9,7 +8,8 @@ public class Device {
     private boolean hasBeenPair;
     private final boolean isHCO5;
 
-    public Device(BluetoothDevice device, boolean hasBeenPair, boolean isHC05) {
+
+    public Device(BluetoothDevice device, boolean hasBeenPair, boolean isHC05){
         this.device = device;
         this.hasBeenPair = hasBeenPair;
         this.isHCO5 = isHC05;

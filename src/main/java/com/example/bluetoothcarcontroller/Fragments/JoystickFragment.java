@@ -3,15 +3,11 @@ package com.example.bluetoothcarcontroller.Fragments;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-
 import com.example.bluetoothcarcontroller.Bluetooth.DeviceAdapter;
 import com.example.bluetoothcarcontroller.MainActivity;
 import com.example.bluetoothcontroler.R;
-
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -31,23 +27,19 @@ public class JoystickFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        if(MainActivity.isConnected()) {
-            try {
-                MainActivity.sendData(MainActivity.STOP, 5);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        // init
-        executorService = Executors.newSingleThreadExecutor();
 
         // connected view
         connected = view.findViewById(R.id.connected);
         notConnected = view.findViewById(R.id.notConnected);
+
+        // make sure the car is stationary
+        MainActivity.sendData(MainActivity.STOP, 5, connected, notConnected);
+
+        // init thread to update graphics
+        executorService = Executors.newSingleThreadExecutor();
+        // set visibility based on connection
         connected.setVisibility(MainActivity.isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
         notConnected.setVisibility(!MainActivity.isConnectedToBluetoothReceiver? View.VISIBLE: View.INVISIBLE);
-
 
         // joystick logic
         JoystickView joystick = view.findViewById(R.id.joystickController);

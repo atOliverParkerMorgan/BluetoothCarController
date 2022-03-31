@@ -1,17 +1,13 @@
-package com.example.bluetoothcarcontroller;
+package com.example.bluetoothcarcontroller.Canvas;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
-
-import androidx.annotation.NonNull;
-
 import com.example.bluetoothcontroler.R;
 
 import java.util.ConcurrentModificationException;
@@ -63,17 +59,7 @@ public class AutopilotCanvasView extends View {
         // Create our ScaleGestureDetector
         mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
 
-        // 100 random points
-//        for (int i = 0; i < 100 ; i++) {
-//            float x = (float) (Math.random() * 1000);
-//            float y = (float) (Math.random() * 1000);
-//
-//            float[] cords = new float[]{x, y};
-//            addPoint(cords);
-//        }
     }
-
-
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         // Let the ScaleGestureDetector inspect all events.
@@ -97,8 +83,8 @@ public class AutopilotCanvasView extends View {
                 final int pointerIndex = ev.findPointerIndex(mActivePointerId);
                 final float x = ev.getX(pointerIndex);
                 final float y = ev.getY(pointerIndex);
-                Log.d("X", String.valueOf(x));
-                Log.d("Y", String.valueOf(y));
+                // Log.d("X", String.valueOf(x));
+                // Log.d("Y", String.valueOf(y));
 
 
                 // Only move if the ScaleGestureDetector isn't processing a gesture.
@@ -170,8 +156,6 @@ public class AutopilotCanvasView extends View {
         canvas.translate(mPosX, mPosY);
         mCarIcon.draw(canvas);
         canvas.restore();
-
-   ;
         try {
             for (float[] cord : points) {
                 canvas.save();
@@ -182,10 +166,7 @@ public class AutopilotCanvasView extends View {
             }
         }
         catch (ConcurrentModificationException ignored){}
-
     }
-
-
 
     private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {
         @Override

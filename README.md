@@ -138,4 +138,4 @@ This section contains curated visuals from the project presentation.
 ![Final product photo](docs/images/final-product.jpg)
 ---
 
-If you plan to continue development, consider adding a protocol reference table (command byte -> behavior), hardware wiring diagram, and expanded automated tests for communication and UI flows.
+If you plan to continue development, consider adding a protocol reference table (command byte -> behavior), hardware wiring diagram, and expanded automated tests for communication and UI flows. 
